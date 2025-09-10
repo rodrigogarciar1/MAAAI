@@ -10,9 +10,10 @@ using JLD2
 using Images
 
 function fileNamesFolder(folderName::String, extension::String)
-    #
-    # Codigo a desarrollar
-    #
+    extension = uppercase(extension); 
+    fileNames = filter(f -> endswith(uppercase(f), ".$extension"), readdir(folderName))
+    
+    return chop.(fileNames, tail = length(extension)+1) 
 end;
 
 
