@@ -13,16 +13,32 @@ function fileNamesFolder(folderName::String, extension::String)
     extension = uppercase(extension); 
     fileNames = filter(f -> endswith(uppercase(f), ".$extension"), readdir(folderName))
     
-    return chop.(fileNames, tail = length(extension)+1) 
+    return chop.(fileNames, tail = length(extension)+1) #Elimina el ".*" del nombre de todos los archivos encontrados
 end;
+
 
 
 
 function loadDataset(datasetName::String, datasetFolder::String;
     datasetType::DataType=Float32)
-    #
-    # Codigo a desarrollar
-    #
+
+    datasetName *=".tsv"; #Añade la extension
+    path = abspath(joinpath(datasetFolder, datasetName)) #Obtiene la ruta del archivo
+    datasetMatrix = Matrix #Creación de objeto vacio
+
+    try
+    datasetMatrix = readdlm(path, '\t')
+    catch
+        println("ERROR: FILE NOT FOUND")
+        return nothing
+    end;
+
+    targetColumn = findfirst(datasetMatrix[1,:].=="target"); #Encuentra la columna de targets
+    datasetMatrix = datasetMatrix[2:end,:]; #Elimina la fila de etiquetas de la matriz
+    targets = reshape(Bool.(datasetMatrix[:,targetColumn]), 1, :); #Convierte la columna de targets a booleanos y lo convierte en array
+    inputs = datasetMatrix[:, (1:end) .!= targetColumn]; #Todas las colmunas menos la de target
+    
+    return (convert.(datasetType ,inputs), targets)
 end;
 
 

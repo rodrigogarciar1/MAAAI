@@ -34,13 +34,21 @@ imageFolder = "./datasets/images";
 imageFileNames = fileNamesFolder(imageFolder,"tif");
 @assert(imageFileNames == ["cameraman", "lake", "lena_gray_512", "livingroom", "mandril_gray", "peppers_gray", "pirate", "walkbridge"]);
 
+println("==============================")
 println("Tests filesNamesFolder pasados")
+println("==============================")
+println()
 
 inputs, targets = loadDataset("sonar", datasetFolder; datasetType=Float32);
 @assert(size(inputs)==(208,60))
 @assert(length(targets)==208)
 @assert(eltype(inputs)==Float32)
 @assert(eltype(targets)==Bool)
+
+println("==============================")
+println("Tests loadDataset pasados")
+println("==============================")
+println()
 
 image = loadImage("cameraman", imageFolder; datasetType=Float64, resolution=64)
 @assert(size(image)==(64,64))
