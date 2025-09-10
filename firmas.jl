@@ -103,9 +103,17 @@ end;
 
 
 function loadStreamLearningDataset(datasetFolder::String; datasetType::DataType=Float32)
-    #
-    # Codigo a desarrollar
-    #
+    targets = readdlm(abspath(joinpath(datasetFolder, "elec2_label.dat")))
+    inputs = readdlm(abspath(joinpath(datasetFolder, "elec2_data.dat")))
+
+    targets = vec(Bool.(targets))
+
+    (senos, cosenos) = cyclicalEncoding(inputs[2,:])
+
+    inputs = inputs[:, (1:end) .∉ ((2,5),)]
+
+    return (hcat(senos, cosenos, inputs), targets)
+
 end;
 
 
