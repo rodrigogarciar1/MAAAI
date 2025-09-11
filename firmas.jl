@@ -45,6 +45,7 @@ end;
 
 function loadImage(imageName::String, datasetFolder::String;
     datasetType::DataType=Float32, resolution::Int=128)
+
     imageName *= ".tif"; #extension
     path = abspath(joinpath(datasetFolder, imageName)); #ruta del archivo
     ImageMatrix = Matrix; #matriz de la imagen vacia
@@ -55,11 +56,13 @@ function loadImage(imageName::String, datasetFolder::String;
     end;
     image = load(path); 
     image = imresize(image, (resolution,resolution)) #cambiar la resolución y a grises 1 y 0
+
     #comprobar si ya está en grises
     if eltype(image) <: Gray
         ImageMatrix = Float64.(image); #si esta en grises se pasa a números
     else
-        ImageMatrix = gray(image) #convertir a escala de grises con 1 o 0
+
+        ImageMatrix = gray.(image) #convertir a escala de grises con 1 o 0
     end;
 
     ImageMatrix = convert(Matrix{datasetType}, ImageMatrix); #convertir en el tipo necesario
@@ -83,7 +86,7 @@ function loadImagesNCHW(datasetFolder::String;
     #Obtener el nombre de los archivos y añade la extension
     imagesNames = fileNamesFolder(datasetFolder, "tif")
     #Cargar todas las imagenes mediante un broadcast
-    images = loadImage(imagesNames, datasetFolder; datasetType=datasetType, resolution=resolution)
+    images = loadImage.(imagesNames, datasetFolder; datasetType=datasetType, resolution=resolution)
     #Convertir las imagenes a NCHW
     imagesNCHW = convertImagesNCHW(images)
 
@@ -180,8 +183,9 @@ function loadStreamLearningDataset(datasetFolder::String; datasetType::DataType=
 
     targets = vec(Bool.(targets))
 
-    (senos, cosenos) = cyclicalEncoding(inputs[:,2])
-    inputs = inputs[:, (1:end) .∉ ((2,5),)]
+    inputs = inputs[:, (1:end) .∉ ((1,4),)]
+    (senos, cosenos) = cyclicalEncoding(inputs[:,1])
+    inputs = inputs[:, (2:end)]
 
     return (hcat(senos, cosenos, inputs), targets)
 
