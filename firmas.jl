@@ -79,9 +79,15 @@ end;
 
 function loadImagesNCHW(datasetFolder::String;
     datasetType::DataType=Float32, resolution::Int=128)
-    #
-    # Codigo a desarrollar
-    #
+
+    #Obtener el nombre de los archivos y añade la extension
+    imagesNames = fileNamesFolder(datasetFolder, "tif")
+    #Cargar todas las imagenes mediante un broadcast
+    images = loadImage(imagesNames, datasetFolder; datasetType=datasetType, resolution=resolution)
+    #Convertir las imagenes a NCHW
+    imagesNCHW = convertImagesNCHW(images)
+
+    return imagesNCHW
 end;
 
 
@@ -92,9 +98,42 @@ showImage(imagesNCHW1::AbstractArray{<:Real,4}, imagesNCHW2::AbstractArray{<:Rea
 
 
 function loadMNISTDataset(datasetFolder::String; labels::AbstractArray{Int,1}=0:9, datasetType::DataType=Float32)
-    #
-    # Codigo a desarrollar
-    #
+
+    # Cargar el archivo MNIST.jld2
+    mnistPath = abspath(joinpath(datasetFolder, "MNIST.jld2"))
+    mnistData = load(mnistPath)
+    
+    # Extraer datos del diccionario
+    trainImages = mnistData["train_imgs"]
+    trainLabels = mnistData["train_labels"]
+    testImages = mnistData["test_imgs"] 
+    testLabels = mnistData["test_labels"]
+    
+    # Si labels contiene -1, cambiar las etiquetas no incluidas a -1
+    if -1 in labels
+        trainLabels[.!in.(trainLabels, [setdiff(labels, -1)])] .= -1
+        testLabels[.!in.(testLabels, [setdiff(labels, -1)])] .= -1
+    end
+    
+    # Obtener índices de las imágenes que queremos mantener
+    trainIndices = in.(trainLabels, [labels])
+    testIndices = in.(testLabels, [labels])
+    
+    # Filtrar imágenes y etiquetas
+    filteredTrainImages = trainImages[trainIndices]
+    filteredTrainLabels = trainLabels[trainIndices]
+    filteredTestImages = testImages[testIndices]
+    filteredTestLabels = testLabels[testIndices]
+    
+    # Convertir imágenes a formato NCHW
+    trainImagesNCHW = convertImagesNCHW(filteredTrainImages)
+    testImagesNCHW = convertImagesNCHW(filteredTestImages)
+    
+    # Convertir al tipo de dato especificado
+    trainImagesNCHW = convert.(datasetType, trainImagesNCHW)
+    testImagesNCHW = convert.(datasetType, testImagesNCHW)
+    
+    return (trainImagesNCHW, filteredTrainLabels, testImagesNCHW, filteredTestLabels)
 end;
 
 
