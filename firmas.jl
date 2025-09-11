@@ -45,9 +45,26 @@ end;
 
 function loadImage(imageName::String, datasetFolder::String;
     datasetType::DataType=Float32, resolution::Int=128)
-    #
-    # Codigo a desarrollar
-    #
+    imageName *= ".tif"; #extension
+    path = abspath(joinpath(datasetFolder, imageName)); #ruta del archivo
+    ImageMatrix = Matrix; #matriz de la imagen vacia
+
+    if !isfile(path)
+        println("ERROR: FILE NOT FOUND");
+        return nothing;
+    end;
+    image = load(path); 
+    image = imresize(image, (resolution,resolution)) #cambiar la resolución y a grises 1 y 0
+    #comprobar si ya está en grises
+    if eltype(image) <: Gray
+        ImageMatrix = Float64.(image); #si esta en grises se pasa a números
+    else
+        ImageMatrix = gray(image) #convertir a escala de grises con 1 o 0
+    end;
+
+    ImageMatrix = convert(Matrix{datasetType}, ImageMatrix); #convertir en el tipo necesario
+
+    return ImageMatrix
 end;
 
 
@@ -91,7 +108,7 @@ function intervalDiscreteVector(data::AbstractArray{<:Real,1})
     # Si todas las diferencias son multiplos exactos (valores enteros) de esa diferencia, entonces es un vector de valores discretos
     isInteger(x::Float64, tol::Float64) = abs(round(x)-x) < tol
     return all(isInteger.(differences./minDifference, 1e-3)) ? minDifference : 0.
-end
+end;
 
 
 function cyclicalEncoding(data::AbstractArray{<:Real,1})
