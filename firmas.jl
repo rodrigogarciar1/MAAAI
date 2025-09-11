@@ -180,8 +180,7 @@ function loadStreamLearningDataset(datasetFolder::String; datasetType::DataType=
 
     targets = vec(Bool.(targets))
 
-    (senos, cosenos) = cyclicalEncoding(inputs[2,:])
-
+    (senos, cosenos) = cyclicalEncoding(inputs[:,2])
     inputs = inputs[:, (1:end) .∉ ((2,5),)]
 
     return (hcat(senos, cosenos, inputs), targets)
