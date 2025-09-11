@@ -151,12 +151,26 @@ end;
 
 
 function cyclicalEncoding(data::AbstractArray{<:Real,1})
-    valor_m = intervalDiscreteVector(data);
-    senos = sin.(valor_m);
-    cosenos = cos.(valor_m);
+    m = intervalDiscreteVector(data)
+    unique_vals = sort(unique(data)) #los valores no son únicos, hay mas angulos, mejor que la media usar esto para ordenar todo
+    n = length(unique_vals)  #nmero de valores distintos
 
-    return (senos, cosenos)
-end;
+    if m == 0.0
+        #caso continuo: normalización en [0, 2π]
+        angulos = (data .- minimum(data)) ./ (maximum(data) - minimum(data)) .* 2π
+    else
+        #posición del valor en la lista ordenada * 2π/n
+        paso = 2π / n
+        #posición de cada valor en la lista
+        angulos = [ (findfirst(==(x), unique_vals) - 1) * paso for x in data ]
+    end
+
+    senos = sin.(angulos)
+    cosenos = cos.(angulos)
+
+    return senos, cosenos
+end
+
 
 
 
