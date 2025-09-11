@@ -33,6 +33,8 @@ imageFolder = "./datasets/images";
 
 imageFileNames = fileNamesFolder(imageFolder,"tif");
 @assert(imageFileNames == ["cameraman", "lake", "lena_gray_512", "livingroom", "mandril_gray", "peppers_gray", "pirate", "walkbridge"]);
+@assert(isa(imageFileNames, Vector{String}))
+
 
 println("==============================")
 println("Tests filesNamesFolder pasados")
@@ -44,6 +46,7 @@ inputs, targets = loadDataset("sonar", datasetFolder; datasetType=Float32);
 @assert(length(targets)==208)
 @assert(eltype(inputs)==Float32)
 @assert(eltype(targets)==Bool)
+@assert(isa((inputs, targets), Tuple{AbstractMatrix{<:Real}, AbstractVector{<:Bool}}))
 
 println("==============================")
 println("Tests loadDataset pasados")
@@ -54,10 +57,19 @@ image = loadImage("cameraman", imageFolder; datasetType=Float64, resolution=64)
 @assert(size(image)==(64,64))
 @assert(eltype(image)==Float64)
 
+println("==============================")
+println("Tests loadImage pasados")
+println("==============================")
+println()
+
 imagesNCHW = loadImagesNCHW(imageFolder; datasetType=Float64, resolution=32)
 @assert(size(imagesNCHW)==(8,1,32,32))
 @assert(eltype(imagesNCHW)==Float64)
 
+println("==============================")
+println("Tests loadImageNCHW pasados")
+println("==============================")
+println()
 
 MNISTDataset = loadMNISTDataset(datasetFolder; labels=[3,6,9], datasetType=Float64)
 @assert(size(MNISTDataset[1])==(17998, 1, 28, 28))
@@ -68,6 +80,7 @@ MNISTDataset = loadMNISTDataset(datasetFolder; labels=[3,6,9], datasetType=Float
 @assert(eltype(MNISTDataset[3])==Float64)
 @assert(length(MNISTDataset[4])==2977)
 @assert(sort(unique(MNISTDataset[4]))==[3,6,9])
+
 
 
 MNISTDataset = loadMNISTDataset(datasetFolder; labels=[2,7,-1], datasetType=Float32)
@@ -82,11 +95,19 @@ MNISTDataset = loadMNISTDataset(datasetFolder; labels=[2,7,-1], datasetType=Floa
 @assert(eltype(MNISTDataset[4])<:Integer)
 @assert(sort(unique(MNISTDataset[4]))==[-1,2,7])
 
+println("==============================")
+println("Tests loadMNISTDataset pasados")
+println("==============================")
+println()
 
 sinEncoding, cosEncoding = cyclicalEncoding([1, 2, 3, 2, 1, 0, -1, -2, -3]);
 @assert(all(isapprox.(sinEncoding, [-0.433883739117558, -0.9749279121818236, -0.7818314824680299, -0.9749279121818236, -0.433883739117558, 0.43388373911755823, 0.9749279121818236, 0.7818314824680298, 0.0]; rtol=1e-4)))
 @assert(all(isapprox.(cosEncoding, [-0.9009688679024191, -0.2225209339563146, 0.6234898018587334, -0.2225209339563146, -0.9009688679024191, -0.900968867902419, -0.22252093395631434, 0.6234898018587336, 1.0]; rtol=1e-4)))
 
+println("==============================")
+println("Tests cyclicalEncoding pasados")
+println("==============================")
+println()
 
 inputs, targets = loadStreamLearningDataset(datasetFolder; datasetType=Float64)
 @assert(size(inputs)==(45312,7))
@@ -94,6 +115,11 @@ inputs, targets = loadStreamLearningDataset(datasetFolder; datasetType=Float64)
 @assert(eltype(inputs)==Float64)
 @assert(eltype(targets)==Bool)
 
+
+println("==============================")
+println("Tests loadStreamLearningDataset pasados")
+println("==============================")
+println()
 
 
 # ----------------------------------------------------------------------------------------------

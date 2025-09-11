@@ -13,7 +13,7 @@ function fileNamesFolder(folderName::String, extension::String)
     extension = uppercase(extension); 
     fileNames = filter(f -> endswith(uppercase(f), ".$extension"), readdir(folderName))
     
-    return chop.(fileNames, tail = length(extension)+1) #Elimina el ".*" del nombre de todos los archivos encontrados
+    return vec(String.(chop.(fileNames, tail = length(extension)+1))) #Elimina el ".*" del nombre de todos los archivos encontrados
 end;
 
 
@@ -35,7 +35,7 @@ function loadDataset(datasetName::String, datasetFolder::String;
 
     targetColumn = findfirst(datasetMatrix[1,:].=="target"); #Encuentra la columna de targets
     datasetMatrix = datasetMatrix[2:end,:]; #Elimina la fila de etiquetas de la matriz
-    targets = reshape(Bool.(datasetMatrix[:,targetColumn]), 1, :); #Convierte la columna de targets a booleanos y lo convierte en array
+    targets = vec(reshape(Bool.(datasetMatrix[:,targetColumn]), 1, :)); #Convierte la columna de targets a booleanos y lo convierte en array
     inputs = datasetMatrix[:, (1:end) .!= targetColumn]; #Todas las colmunas menos la de target
     
     return (convert.(datasetType ,inputs), targets)
