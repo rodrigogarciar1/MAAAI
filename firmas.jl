@@ -215,7 +215,7 @@ end;
 function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,2}, AbstractArray{Bool,2}}, trainOnly2LastLayers::Bool;
     maxEpochs::Int=1000, minLoss::Real=0.0, learningRate::Real=0.001, minLossChange::Real=1e-7, lossChangeWindowSize::Int=5)
     
-    inputs, targets = dataset; # dataset = Tuple(inputs, targets)
+    inputs, targets = trainingDataset; # dataset = Tuple(inputs, targets)
     inputs = convert(AbstractArray{Float32,2}, inputs); # Se pasan todos los valores a Float32 para mayor velocidad
 
     numEpoch = 0
