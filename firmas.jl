@@ -214,9 +214,37 @@ end;
 
 function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,2}, AbstractArray{Bool,2}}, trainOnly2LastLayers::Bool;
     maxEpochs::Int=1000, minLoss::Real=0.0, learningRate::Real=0.001, minLossChange::Real=1e-7, lossChangeWindowSize::Int=5)
-    #
-    # Codigo a desarrollar
-    #
+    
+    inputs, targets = trainingDataset; # dataset = Tuple(inputs, targets)
+    inputs = convert(AbstractArray{Float32,2}, inputs); # Se pasan todos los valores a Float32 para mayor velocidad
+
+    numEpoch = 0
+
+    loss(model, x, y) = (size(y,1) == 1) ? Losses.binarycrossentropy(model(x),y) : Losses.crossentropy(model(x),y);
+
+    trainingLosses = [loss(ann, inputs, targets)]; # Lista con los valores de error
+    opt_state = Flux.setup(Adam(learningRate), ann);
+    lossChange = -1
+    while (numEpoch < maxEpochs & trainingLosses[end] > minLoss & lossChange > minLossChange)
+        numEpoch+=1
+
+        if trainOnly2LastLayers
+            Flux.freeze!(opt_state.layers[1:(indexOutputLayer(ann)-2)]);
+        end
+
+        Flux.train!(loss, ann, [(inputs, targets)], opt_state);
+        loss = loss(ann, inputs, targets)
+        append!(lossHistory, loss);
+
+        if numEpoch >= lossChangeWindowSize
+            lossWindow = trainingLosses[end-lossChangeWindowSize+1:end]; 
+            minLossValue, maxLossValue = extrema(lossWindow); 
+            lossChange = ((maxLossValue-minLossValue)/minLossValue) 
+        end
+
+    end
+
+    return convert.(Float32, trainingLosses)
 end;
 
 
