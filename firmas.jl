@@ -201,9 +201,12 @@ using Flux
 indexOutputLayer(ann::Chain) = length(ann) - (ann[end]==softmax);
 
 function newClassCascadeNetwork(numInputs::Int, numOutputs::Int)
-    #
-    # Codigo a desarrollar
-    #
+    # Crea una RNA sin capas ocultas según el número de salidas
+    if numOutputs > 2
+        return Chain(Dense(numInputs, numOutputs, identity), softmax);
+    else
+        return Chain(Dense(numInputs, 1, σ));
+    end;
 end;
 
 function addClassCascadeNeuron(previousANN::Chain; transferFunction::Function=σ)
