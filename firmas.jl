@@ -210,9 +210,42 @@ function newClassCascadeNetwork(numInputs::Int, numOutputs::Int)
 end;
 
 function addClassCascadeNeuron(previousANN::Chain; transferFunction::Function=σ)
-    #
-    # Codigo a desarrollar
-    #
+    # Referenciar la capa de salida de RNA y las capas previas
+    outputLayer = previousANN[indexOutputLayer(previousANN)];
+    previousLayers = previousANN[1:(indexOutputLayer(previousANN)-1)];
+    
+    # Obtener el número de entradas y salidas a partir de la capa de salida
+    numInputsOutputLayer = size(outputLayer.weight, 2);
+    numOutputsOutputLayer = size(outputLayer.weight, 1);
+    
+    # Crear  una  RNA  nueva en base al numero de salidas
+    if numOutputsOutputLayer > 2
+        ann = Chain(
+            previousLayers...,
+            SkipConnection(Dense(numInputsOutputLayer, 1, transferFunction), (mx, x) -> vcat(x, mx)),
+            Dense(numInputsOutputLayer + 1, numOutputsOutputLayer, identity),
+            softmax
+        );
+    else
+        ann = Chain(
+            previousLayers...,
+            SkipConnection(Dense(numInputsOutputLayer, 1, transferFunction), (mx, x) -> vcat(x, mx)),
+            Dense(numInputsOutputLayer + 1, 1, σ)
+        );
+    end;
+    
+    # Obtener la nueva capa de salida
+    newOutputLayer = ann[indexOutputLayer(ann)];
+    
+    # Copiar pesos y bias de la red anterior
+    # Poner la última columna (conexiones de la nueva neurona) a 0
+    newOutputLayer.weight[:, end] .= 0;
+    # Copiar los pesos anteriores
+    newOutputLayer.weight[:, 1:end-1] .= outputLayer.weight;
+    # Copiar el bias
+    newOutputLayer.bias .= outputLayer.bias;
+    
+    return ann;
 end;
 
 function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,2}, AbstractArray{Bool,2}}, trainOnly2LastLayers::Bool;
