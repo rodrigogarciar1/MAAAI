@@ -151,7 +151,10 @@ seed!(1); ann = newClassCascadeNetwork(size(inputs,2), 1)
 @assert(ann[1].σ==σ)
 @assert(size(ann(inputs'))==(1,208))
 
-
+println("==============================")
+println("Tests newClassCascadeNetwork pasados")
+println("==============================")
+println()
 
 
 seed!(1); newAnn = addClassCascadeNeuron(ann; transferFunction=tanh)
@@ -193,7 +196,10 @@ seed!(1); newANN = addClassCascadeNeuron(newAnn; transferFunction=σ)
 @assert(all(isapprox.(newANN[3].bias, newAnn[2].bias)))
 
 
-
+println("==============================")
+println("Tests addClassCascadeNeuron pasados")
+println("==============================")
+println()
 
 
 trainingLosses = trainClassANN!(newANN, (inputs', reshape(targets, 1, :)), true;
@@ -214,6 +220,10 @@ trainingLosses = trainClassANN!(newANN, (inputs', reshape(targets, 1, :)), false
 @assert(all(isapprox.(newANN.layers[3].bias,        [0.018007565])));
 
 
+println("==============================")
+println("Tests trainClassANN! pasados")
+println("==============================")
+println()
 
 seed!(1); ann, trainingLosses = trainClassCascadeANN(4, (inputs, reshape(targets, :, 1));
     transferFunction=tanh, maxEpochs=10, minLoss=0.0, learningRate=0.001, minLossChange=1e-6, lossChangeWindowSize=3)
@@ -239,7 +249,10 @@ seed!(1); ann, trainingLosses = trainClassCascadeANN(4, (inputs, targets);
 @assert(all(isapprox.(ann.layers[5].bias,        [0.04217559])));
 
 
-
+println("==============================")
+println("Tests trainClassCascadeANN pasados")
+println("==============================")
+println()
 
 # ----------------------------------------------------------------------------------------------
 # ------------------------------------- Ejercicio 3 --------------------------------------------
