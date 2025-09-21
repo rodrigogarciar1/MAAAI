@@ -260,8 +260,8 @@ function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,
 
     trainingLosses = [loss(ann, inputs, targets)]; # Lista con los valores de error
     opt_state = Flux.setup(Adam(learningRate), ann);
-    lossChange = -1
-    while (numEpoch < maxEpochs & trainingLosses[end] > minLoss & lossChange > minLossChange)
+    lossChange = 1
+    while (numEpoch < maxEpochs) & (trainingLosses[end] > minLoss) & (lossChange > minLossChange)
         numEpoch+=1
 
         if trainOnly2LastLayers
