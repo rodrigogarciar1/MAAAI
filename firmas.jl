@@ -7,6 +7,7 @@ import FileIO.load
 using DelimitedFiles
 using JLD2
 using Images
+using Flux.Losses
 
 function fileNamesFolder(folderName::String, extension::String)
     extension = uppercase(extension); 
@@ -261,6 +262,7 @@ function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,
     trainingLosses = [loss(ann, inputs, targets)]; # Lista con los valores de error
     opt_state = Flux.setup(Adam(learningRate), ann);
     lossChange = 1
+
     while (numEpoch < maxEpochs) & (trainingLosses[end] > minLoss) & (lossChange > minLossChange)
         numEpoch+=1
 
@@ -269,8 +271,8 @@ function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,
         end
 
         Flux.train!(loss, ann, [(inputs, targets)], opt_state);
-        loss = loss(ann, inputs, targets)
-        append!(lossHistory, loss);
+        Loss = loss(ann, inputs, targets)
+        append!(trainingLosses, Loss);
 
         if numEpoch >= lossChangeWindowSize
             lossWindow = trainingLosses[end-lossChangeWindowSize+1:end]; 
