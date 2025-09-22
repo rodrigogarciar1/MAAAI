@@ -172,7 +172,7 @@ function cyclicalEncoding(data::AbstractArray{<:Real,1})
     cosenos = cos.(angulos)
 
     return senos, cosenos
-end
+end;
 
 
 
@@ -290,18 +290,60 @@ function trainClassCascadeANN(maxNumNeurons::Int,
     trainingDataset::Tuple{AbstractArray{<:Real,2}, AbstractArray{Bool,2}};
     transferFunction::Function=σ,
     maxEpochs::Int=1000, minLoss::Real=0.0, learningRate::Real=0.001, minLossChange::Real=1e-7, lossChangeWindowSize::Int=5)
-    #
-    # Codigo a desarrollar
-    #
+    inputs, outputs = trainingDataset;
+    inputs = transpose(inputs); #trasponer las funciones
+    outputs = transpose(outputs);
+
+    inputs = convert(Array{Float64}, inputs) #matriz de entradas a float32
+
+    ann = newClassCascadeNetwork(size(inputs,1), size(outputs,1));
+
+    loss = trainClassANN!(ann,(inputs, outputs),false ,
+                maxEpochs = maxEpochs, minLoss= minLoss, 
+                learningRate= learningRate, minLossChange=minLossChange, 
+                lossChangeWindowSize = lossChangeWindowSize);
+    
+    loss_total = convert(Array{Float32}, loss)
+    
+    for neuron in 1:maxNumNeurons
+        ann = addClassCascadeNeuron(ann, transferFunction=transferFunction)
+        if neuron >= 1
+            if neuron > 1
+                loss_partial =  trainClassANN!(ann,(inputs, outputs),true ,
+                maxEpochs = maxEpochs, minLoss= minLoss, 
+                learningRate= learningRate, minLossChange=minLossChange, 
+                lossChangeWindowSize = lossChangeWindowSize);
+
+                loss_total = vcat(loss_total, convert(Array{Float32}, loss_partial[2:end]))
+
+
+            end;
+
+            loss_global = trainClassANN!(ann,(inputs, outputs),false ,
+                                        maxEpochs = maxEpochs, minLoss= minLoss, 
+                                        learningRate= learningRate, minLossChange=minLossChange, 
+                                        lossChangeWindowSize = lossChangeWindowSize);
+            loss_total = vcat(loss_total, convert(Array{Float32}, loss_global[2:end]))
+
+        end;
+    end;
+
+
+    return tuple(ann,loss_total)
 end;
 
 function trainClassCascadeANN(maxNumNeurons::Int,
     trainingDataset::  Tuple{AbstractArray{<:Real,2}, AbstractArray{Bool,1}};
     transferFunction::Function=σ,
     maxEpochs::Int=100, minLoss::Real=0.0, learningRate::Real=0.01, minLossChange::Real=1e-7, lossChangeWindowSize::Int=5)
-    #
-    # Codigo a desarrollar
-    #
+    
+    inputs, outputs = trainingDataset;
+    outputs_matriz = reshape(outputs, (length(outputs),1))
+    return trainClassCascadeANN(maxNumNeurons, (inputs, outputsMatrix),
+                               transferFunction=transferFunction,maxEpochs=maxEpochs,minLoss=minLoss,
+                               learningRate=learningRate, minLossChange=minLossChange,
+                               lossChangeWindowSize=lossChangeWindowSize)
+    
 end;
     
 
