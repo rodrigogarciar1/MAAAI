@@ -294,7 +294,7 @@ function trainClassCascadeANN(maxNumNeurons::Int,
     inputs = transpose(inputs); #trasponer las funciones
     outputs = transpose(outputs);
 
-    inputs = convert(Array{Float64}, inputs) #matriz de entradas a float32
+    inputs = convert(Array{Float32}, inputs) #matriz de entradas a float32
 
     ann = newClassCascadeNetwork(size(inputs,1), size(outputs,1));
 
@@ -303,7 +303,7 @@ function trainClassCascadeANN(maxNumNeurons::Int,
                 learningRate= learningRate, minLossChange=minLossChange, 
                 lossChangeWindowSize = lossChangeWindowSize);
     
-    loss_total = convert(Array{Float32}, loss)
+    loss_total = convert(Array{Float32,1}, loss)
     
     for neuron in 1:maxNumNeurons
         ann = addClassCascadeNeuron(ann, transferFunction=transferFunction)
@@ -314,7 +314,7 @@ function trainClassCascadeANN(maxNumNeurons::Int,
                 learningRate= learningRate, minLossChange=minLossChange, 
                 lossChangeWindowSize = lossChangeWindowSize);
 
-                loss_total = vcat(loss_total, convert(Array{Float32}, loss_partial[2:end]))
+                loss_total = vcat(loss_total, convert(Array{Float32,1}, loss_partial[2:end]))
 
 
             end;
@@ -323,7 +323,7 @@ function trainClassCascadeANN(maxNumNeurons::Int,
                                         maxEpochs = maxEpochs, minLoss= minLoss, 
                                         learningRate= learningRate, minLossChange=minLossChange, 
                                         lossChangeWindowSize = lossChangeWindowSize);
-            loss_total = vcat(loss_total, convert(Array{Float32}, loss_global[2:end]))
+            loss_total = vcat(loss_total, convert(Array{Float32,1}, loss_global[2:end]))
 
         end;
     end;
