@@ -328,7 +328,6 @@ function trainClassCascadeANN(maxNumNeurons::Int,
         end;
     end;
 
-
     return tuple(ann,loss_total)
 end;
 
@@ -339,7 +338,7 @@ function trainClassCascadeANN(maxNumNeurons::Int,
     
     inputs, outputs = trainingDataset;
     outputs_matriz = reshape(outputs, (length(outputs),1))
-    return trainClassCascadeANN(maxNumNeurons, (inputs, outputsMatrix),
+    return trainClassCascadeANN(maxNumNeurons, (inputs, outputs_matriz),
                                transferFunction=transferFunction,maxEpochs=maxEpochs,minLoss=minLoss,
                                learningRate=learningRate, minLossChange=minLossChange,
                                lossChangeWindowSize=lossChangeWindowSize)
