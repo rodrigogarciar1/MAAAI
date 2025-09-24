@@ -34,20 +34,39 @@ imageFolder = "../datasets/images";
 imageFileNames = fileNamesFolder(imageFolder,"tif");
 @assert(imageFileNames == ["cameraman", "lake", "lena_gray_512", "livingroom", "mandril_gray", "peppers_gray", "pirate", "walkbridge"]);
 
+println("==============================")
+println("Tests fileNamesFolder pasados")
+println("==============================")
+println()
+
 inputs, targets = loadDataset("sonar", datasetFolder; datasetType=Float32);
 @assert(size(inputs)==(208,60))
 @assert(length(targets)==208)
 @assert(eltype(inputs)==Float32)
 @assert(eltype(targets)==Bool)
 
+println("==============================")
+println("Tests loadDataset pasados")
+println("==============================")
+println()
+
 image = loadImage("cameraman", imageFolder; datasetType=Float64, resolution=64)
 @assert(size(image)==(64,64))
 @assert(eltype(image)==Float64)
+
+println("==============================")
+println("Tests loadImage pasados")
+println("==============================")
+println()
 
 imagesNCHW = loadImagesNCHW(imageFolder; datasetType=Float64, resolution=32)
 @assert(size(imagesNCHW)==(8,1,32,32))
 @assert(eltype(imagesNCHW)==Float64)
 
+println("==============================")
+println("Tests loadImagesNCHW pasados")
+println("==============================")
+println()
 
 MNISTDataset = loadMNISTDataset(datasetFolder; labels=[3,6,9], datasetType=Float64)
 @assert(size(MNISTDataset[1])==(17998, 1, 28, 28))
@@ -72,11 +91,19 @@ MNISTDataset = loadMNISTDataset(datasetFolder; labels=[2,7,-1], datasetType=Floa
 @assert(eltype(MNISTDataset[4])<:Integer)
 @assert(sort(unique(MNISTDataset[4]))==[-1,2,7])
 
+println("==============================")
+println("Tests loadMNISTDataset pasados")
+println("==============================")
+println()
 
 sinEncoding, cosEncoding = cyclicalEncoding([1, 2, 3, 2, 1, 0, -1, -2, -3]);
 @assert(all(isapprox.(sinEncoding, [-0.433883739117558, -0.9749279121818236, -0.7818314824680299, -0.9749279121818236, -0.433883739117558, 0.43388373911755823, 0.9749279121818236, 0.7818314824680298, 0.0]; rtol=1e-4)))
 @assert(all(isapprox.(cosEncoding, [-0.9009688679024191, -0.2225209339563146, 0.6234898018587334, -0.2225209339563146, -0.9009688679024191, -0.900968867902419, -0.22252093395631434, 0.6234898018587336, 1.0]; rtol=1e-4)))
 
+println("==============================")
+println("Tests cyclicalEncoding pasados")
+println("==============================")
+println()
 
 inputs, targets = loadStreamLearningDataset(datasetFolder; datasetType=Float64)
 @assert(size(inputs)==(45312,7))
@@ -84,7 +111,10 @@ inputs, targets = loadStreamLearningDataset(datasetFolder; datasetType=Float64)
 @assert(eltype(inputs)==Float64)
 @assert(eltype(targets)==Bool)
 
-
+println("==============================")
+println("Tests loadStreamLearningDataset pasados")
+println("==============================")
+println()
 
 # ----------------------------------------------------------------------------------------------
 # ------------------------------------- Ejercicio 2 --------------------------------------------
@@ -116,7 +146,10 @@ seed!(1); ann = newClassCascadeNetwork(size(inputs,2), 1)
 @assert(size(ann(inputs'))==(1,208))
 
 
-
+println("==============================")
+println("Tests newClassCascadeNetwork pasados")
+println("==============================")
+println()
 
 seed!(1); newAnn = addClassCascadeNeuron(ann; transferFunction=tanh)
 @assert(length(newAnn)==2)
@@ -157,7 +190,10 @@ seed!(1); newANN = addClassCascadeNeuron(newAnn; transferFunction=σ)
 @assert(all(isapprox.(newANN[3].bias, newAnn[2].bias)))
 
 
-
+println("==============================")
+println("Tests addClassCascadeNeuron pasados")
+println("==============================")
+println()
 
 
 trainingLosses = trainClassANN!(newANN, (inputs', reshape(targets, 1, :)), true;
@@ -177,7 +213,10 @@ trainingLosses = trainClassANN!(newANN, (inputs', reshape(targets, 1, :)), false
 @assert(all(isapprox.(newANN.layers[2].layers.bias, [-0.04788568])));
 @assert(all(isapprox.(newANN.layers[3].bias,        [0.018007565])));
 
-
+println("==============================")
+println("Tests trainClassANN! pasados")
+println("==============================")
+println()
 
 seed!(1); ann, trainingLosses = trainClassCascadeANN(4, (inputs, reshape(targets, :, 1));
     transferFunction=tanh, maxEpochs=10, minLoss=0.0, learningRate=0.001, minLossChange=1e-6, lossChangeWindowSize=3)
@@ -203,7 +242,10 @@ seed!(1); ann, trainingLosses = trainClassCascadeANN(4, (inputs, targets);
 @assert(all(isapprox.(ann.layers[5].bias,        [0.042160995])));
 
 
-
+println("==============================")
+println("Tests trainClassCasacadeANN pasados")
+println("==============================")
+println()
 
 # ----------------------------------------------------------------------------------------------
 # ------------------------------------- Ejercicio 3 --------------------------------------------
