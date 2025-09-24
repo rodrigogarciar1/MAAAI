@@ -272,6 +272,10 @@ ann = trainHopfield(imagesNCHW.>=0.5);
 @assert(eltype(ann) == Float32);
 @assert(ann == Float32[0.0  -0.5   0.0  -0.5; -0.5   0.0  -0.5   0.0;  0.0  -0.5   0.0   0.5; -0.5   0.0   0.5   0.0]);
 
+println("==============================")
+println("Tests trainHopfield pasados")
+println("==============================")
+println()
 
 seed!(1); S = stepHopfield(ann, rand([-1,1],4))
 @assert(eltype(S) == Float32);
@@ -281,6 +285,10 @@ seed!(1); S = stepHopfield(ann, randn(4).>=0)
 @assert(eltype(S) == Bool);
 @assert(S == Bool[0, 1, 1, 1]);
 
+println("==============================")
+println("Tests stepHopfield pasados")
+println("==============================")
+println()
 
 imagesNCHW = loadImagesNCHW(imageFolder; datasetType=Float64, resolution=8).>=0.5;
 
@@ -289,17 +297,30 @@ seed!(1); newImagesNCHW = addNoise(imagesNCHW, 0.5);
 @assert(size(newImagesNCHW)==size(imagesNCHW))
 @assert(0.45 <= mean(newImagesNCHW .== imagesNCHW) <= 0.55)
 
+println("==============================")
+println("Tests addNoise pasados")
+println("==============================")
+println()
+
 newImagesNCHW = cropImages(imagesNCHW, 0.25);
 @assert(eltype(newImagesNCHW)==eltype(imagesNCHW))
 @assert(size(newImagesNCHW)==size(imagesNCHW))
 @assert(!any(newImagesNCHW[:,:,:,7:8]))
+
+println("==============================")
+println("Tests cropImages pasados")
+println("==============================")
+println()
 
 seed!(1); newImagesNCHW = randomImages(10, 32);
 @assert(size(newImagesNCHW)==(10,1,32,32))
 @assert(eltype(newImagesNCHW)==Bool)
 @assert(0.45 <= mean(newImagesNCHW) <= 0.55)
 
-
+println("==============================")
+println("Tests randomImages pasados")
+println("==============================")
+println()
 
 
 MNISTDataset = loadMNISTDataset(datasetFolder; labels=[2,8], datasetType=Float32);
@@ -311,11 +332,25 @@ templateInputs, templateLabels = averageMNISTImages(MNISTDataset[1], MNISTDatase
 @assert(unique(templateLabels)==[2,8])
 @assert(eltype(templateLabels)<:Integer)
 
+println("==============================")
+println("Tests averageMNISTImages pasados")
+println("==============================")
+println()
+
 outputLabels = classifyMNISTImages(templateInputs[[2,1],:,:,:].>=0.5, templateInputs.>=0.5, templateLabels);
 @assert(eltype(outputLabels)<:Integer)
 @assert(       outputLabels==[8,2])
+
+println("==============================")
+println("Tests classifyMNISTImages pasados")
+println("==============================")
+println()
 
 trainingAccuracy, testAccuracy = calculateMNISTAccuracies(datasetFolder, [8,2], 0.5);
 @assert(isapprox(trainingAccuracy, 0.8861038191210094));
 @assert(isapprox(testAccuracy,     0.8773678963110668));
 
+println("==============================")
+println("Tests calculateMNISTAccuracies pasados")
+println("==============================")
+println()
