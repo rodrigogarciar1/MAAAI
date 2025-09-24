@@ -438,15 +438,37 @@ end;
 
 
 function classifyMNISTImages(imageArray::AbstractArray{<:Bool,4}, templateInputs::AbstractArray{<:Bool,4}, templateLabels::AbstractArray{Int,1})
-    #
-    # Codigo a desarrollar
-    #
+    outputs = ones(Int, size(imageArray, 1))*-1
+
+    for imageIndex in eachindex(templateLabels)
+        template = templateInputs[[imageIndex], :, :, :]; 
+        indicesCoincidence = vec(all(imageArray .== template, dims=[3,4]));
+        outputs[findall(x->x==true ,indicesCoincidence)] .= templateLabels[imageIndex]
+    end
+
+    return outputs
 end;
 
 function calculateMNISTAccuracies(datasetFolder::String, labels::AbstractArray{Int,1}, threshold::Real)
-    #
-    # Codigo a desarrollar
-    #
+    (trainImagesNCHW, filteredTrainLabels, testImagesNCHW, filteredTestLabels) = loadMNISTDataset(datasetFolder, labels = labels, datasetType = Float32)
+
+    templateInputs, templateLabels = averageMNISTImages(trainImagesNCHW, filteredTrainLabels)
+
+    umbralTrainImages = trainImagesNCHW.>=threshold
+    umbralTestImages = testImagesNCHW.>=threshold
+    umbralTemplateInputs = templateInputs.>=threshold
+
+    hopfieldNet = trainHopfield(umbralTemplateInputs)
+
+    trainMatrix = runHopfield(hopfieldNet, umbralTrainImages)
+    trainPredictions = classifyMNISTImages(trainMatrix, umbralTemplateInputs, templateLabels)
+    trainingAccuracy = mean(trainPredictions.==filteredTrainLabels)
+
+    testMatrix = runHopfield(hopfieldNet, umbralTestImages)
+    testPredictions = classifyMNISTImages(testMatrix, umbralTemplateInputs, templateLabels)
+    testAccuracy = mean(testPredictions.==filteredTrainLabels)
+
+    return (trainingAccuracy, testAccuracy)
 end;
 
 
