@@ -274,7 +274,7 @@ function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,
         Loss = loss(ann, inputs, targets)
         push!(trainingLosses, Loss)
 
-        if length(training_losses) >= lossChangeWindowSize
+        if length(trainingLosses) >= lossChangeWindowSize
             lossWindow = trainingLosses[end-lossChangeWindowSize+1:end]; 
             minLossValue, maxLossValue = extrema(lossWindow); 
             lossChange = ((maxLossValue-minLossValue)/minLossValue) 
