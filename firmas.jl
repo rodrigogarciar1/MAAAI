@@ -261,18 +261,18 @@ function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,
 
     trainingLosses = [loss(ann, inputs, targets)]; # Lista con los valores de error
     opt_state = Flux.setup(Adam(learningRate), ann);
-    lossChange = 1
+    lossChange = minLossChange + 1
 
-    while (numEpoch < maxEpochs) & (trainingLosses[end] > minLoss) & (lossChange > minLossChange)
+    if trainOnly2LastLayers
+        Flux.freeze!(opt_state.layers[1:(indexOutputLayer(ann)-2)]);
+    end
+    
+    while (numEpoch < maxEpochs) && (trainingLosses[end] > minLoss) && (lossChange > minLossChange)
         numEpoch+=1
-
-        if trainOnly2LastLayers
-            Flux.freeze!(opt_state.layers[1:(indexOutputLayer(ann)-2)]);
-        end
 
         Flux.train!(loss, ann, [(inputs, targets)], opt_state);
         Loss = loss(ann, inputs, targets)
-        append!(trainingLosses, Loss);
+        push!(trainingLosses, Loss)
 
         if numEpoch >= lossChangeWindowSize
             lossWindow = trainingLosses[end-lossChangeWindowSize+1:end]; 
@@ -282,7 +282,7 @@ function trainClassANN!(ann::Chain, trainingDataset::Tuple{AbstractArray{<:Real,
 
     end
 
-    return convert.(Float32, trainingLosses)
+    return convert(Vector{Float32}, trainingLosses)
 end;
 
 
