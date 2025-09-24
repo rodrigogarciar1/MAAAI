@@ -427,10 +427,15 @@ function randomImages(numImages::Int, resolution::Int)
 end;
 
 function averageMNISTImages(imageArray::AbstractArray{<:Real,4}, labelArray::AbstractArray{Int,1})
-    #
-    # Codigo a desarrollar
-    #
+    labels = unique(labelArray)
+    imagesNCHW = Array{eltype(imageArray[1]), 4}(undef, length(labels), 1, size(imageArray,3), size(imageArray,4));
+    for indexLabel in eachindex(labels)
+        imagesNCHW[indexLabel,1,:,:] = dropdims(mean(imageArray[labelArray.==labels[indexLabel], 1, :, :], dims=1), dims=1)
+    end
+    return (imagesNCHW, labels)
 end;
+
+
 
 function classifyMNISTImages(imageArray::AbstractArray{<:Bool,4}, templateInputs::AbstractArray{<:Bool,4}, templateLabels::AbstractArray{Int,1})
     #
