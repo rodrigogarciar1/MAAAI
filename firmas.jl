@@ -473,7 +473,7 @@ function calculateMNISTAccuracies(datasetFolder::String, labels::AbstractArray{I
 
     testMatrix = runHopfield(hopfieldNet, umbralTestImages)
     testPredictions = classifyMNISTImages(testMatrix, umbralTemplateInputs, templateLabels)
-    testAccuracy = mean(testPredictions.==filteredTrainLabels)
+    testAccuracy = mean(testPredictions.==filteredTestLabels)
 
     return (trainingAccuracy, testAccuracy)
 end;
