@@ -374,16 +374,16 @@ end;
 
 function stepHopfield(ann::HopfieldNet, S::AbstractArray{<:Real,1})
     entradas = convert(Array{Float32}, S)
-    ann = ann * entradas
-    ann = sign.(ann)
-    return convert(Vector{Float32}, ann)
+    resultado = ann * entradas
+    resultado = sign.(resultado)
+    return convert(Vector{Float32}, resultado)
 end;
 
 function stepHopfield(ann::HopfieldNet, S::AbstractArray{<:Bool,1})
     
     entradas = (2. .*S) .- 1
     vector = stepHopfield(ann,convert(AbstractArray{Real,1},entradas))
-    vector .>= 0
+    vector = vector .>= 0
     return Bool.(vector)
 
 end;
