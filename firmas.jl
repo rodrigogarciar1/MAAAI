@@ -355,30 +355,37 @@ using Random
 HopfieldNet = Array{Float32,2}
 
 function trainHopfield(trainingSet::AbstractArray{<:Real,2})
-    #
-    # Codigo a desarrollar
-    #
+    N, m = size(trainingSet) #la matriz es de igual tamaño
+    #los pesos
+    W = (transpose(trainingSet) * trainingSet) ./ N
+    for i in 1:m
+        W[i,i] = 0 #diagonal a 0
+    end
+    return convert(Array{Float32,2}, W) 
+    
 end;
 function trainHopfield(trainingSet::AbstractArray{<:Bool,2})
-    #
-    # Codigo a desarrollar
-    #
+    return trainHopfield((2. .*trainingSet) .- 1)
 end;
 function trainHopfield(trainingSetNCHW::AbstractArray{<:Bool,4})
-    #
-    # Codigo a desarrollar
-    #
+    
+    return trainHopfield(reshape(trainingSetNCHW, size(trainingSetNCHW,1), size(trainingSetNCHW,3)*size(trainingSetNCHW,4)))
 end;
 
 function stepHopfield(ann::HopfieldNet, S::AbstractArray{<:Real,1})
-    #
-    # Codigo a desarrollar
-    #
+    entradas = convert(Array{Float32}, S)
+    ann = ann * entradas
+    ann = sign.(ann)
+    return convert(Vector{Float32}, ann)
 end;
+
 function stepHopfield(ann::HopfieldNet, S::AbstractArray{<:Bool,1})
-    #
-    # Codigo a desarrollar
-    #
+    
+    entradas = (2. .*S) .- 1
+    vector = stepHopfield(ann,convert(AbstractArray{Real,1},entradas))
+    vector .>= 0
+    return Bool.(vector)
+
 end;
 
 
