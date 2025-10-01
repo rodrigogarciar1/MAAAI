@@ -514,15 +514,23 @@ function batchLength(batch::Batch)
 end;
 
 function selectInstances(batch::Batch, indices::Any)
-    #
-    # Codigo a desarrollar
-    #
+    inputs = batchInputs(batch)
+    outputs = batchTargets(batch)
+    inputs_elegidos = inputs[indices,:]
+    outputs_elegidos = outputs[indices]
+    return (inputs_elegidos,outputs_elegidos)
 end;
 
 function joinBatches(batch1::Batch, batch2::Batch)
-    #
-    # Codigo a desarrollar
-    #
+    inputs1 = batchInputs(batch1)
+    outputs1 = batchTargets(batch1)
+    inputs2 = batchInputs(batch2)
+    outputs2 = batchTargets(batch2)
+    inputs3 = vcat(inputs1, inputs2)
+    outputs3 = vcat(outputs1,outputs2)
+    return (inputs3,outputs3)
+    #tambien se podria poner mas comprimido
+    #return (vcat(batchInputs(batch1),batchInputs(batch2)), vcat(batchTargets(batch1), batchTargets(batch2)))
 end;
 
 
