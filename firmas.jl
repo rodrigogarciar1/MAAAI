@@ -496,12 +496,15 @@ Batch = Tuple{AbstractArray{<:Real,2}, AbstractArray{<:Any,1}}
 
 
 function batchInputs(batch::Batch)
+    return batch[1]
 end;
 
 function batchTargets(batch::Batch)
+    return batch[2]
 end;
 
 function batchLength(batch::Batch)
+    return length(batchTargets(batch))
 end;
 
 function selectInstances(batch::Batch, indices::Any)
