@@ -304,7 +304,7 @@ function trainClassCascadeANN(maxNumNeurons::Int,
                 lossChangeWindowSize = lossChangeWindowSize);
     
     loss_total = convert(Array{Float32,1}, loss)
-    
+    #añadir de una en una, añadir los losses sin tener en cuenta las primeras porque se repiten
     for neuron in 1:maxNumNeurons
         ann = addClassCascadeNeuron(ann, transferFunction=transferFunction)
         if neuron >= 1
@@ -362,32 +362,26 @@ function trainHopfield(trainingSet::AbstractArray{<:Real,2})
         W[i,i] = 0 #diagonal a 0
     end
     return convert(Array{Float32,2}, W) 
-    
 end;
 function trainHopfield(trainingSet::AbstractArray{<:Bool,2})
     return trainHopfield((2. .*trainingSet) .- 1)
 end;
 function trainHopfield(trainingSetNCHW::AbstractArray{<:Bool,4})
-    
     return trainHopfield(reshape(trainingSetNCHW, size(trainingSetNCHW,1), size(trainingSetNCHW,3)*size(trainingSetNCHW,4)))
 end;
 
 function stepHopfield(ann::HopfieldNet, S::AbstractArray{<:Real,1})
     entradas = convert(Array{Float32}, S)
     resultado = ann * entradas
-    resultado = sign.(resultado)
+    resultado = sign.(resultado) #aplicar umbral en 0
     return convert(Vector{Float32}, resultado)
 end;
-
 function stepHopfield(ann::HopfieldNet, S::AbstractArray{<:Bool,1})
-    
-    entradas = (2. .*S) .- 1
+    entradas = (2. .*S) .- 1 #igual que trainhopfield
     vector = stepHopfield(ann,convert(AbstractArray{Real,1},entradas))
-    vector = vector .>= 0
+    vector = vector .>= 0 #pasamos a 0 y 1 al comparar
     return Bool.(vector)
-
 end;
-
 
 function runHopfield(ann::HopfieldNet, S::AbstractArray{<:Real,1})
     prev_S = nothing;
@@ -412,25 +406,28 @@ function runHopfield(ann::HopfieldNet, datasetNCHW::AbstractArray{<:Real,4})
 end;
 
 
-
-
-
 function addNoise(datasetNCHW::AbstractArray{<:Bool,4}, ratioNoise::Real)
-    #
-    # Codigo a desarrollar
-    #
+    copia_dataset = copy(datasetNCHW)
+    indices = shuffle(1:length(copia_dataset))[1:Int(round(length(copia_dataset)*ratioNoise))]
+    copia_dataset[indices] .= .!copia_dataset[indices]
+    return copia_dataset
 end;
 
 function cropImages(datasetNCHW::AbstractArray{<:Bool,4}, ratioCrop::Real)
-    #
-    # Codigo a desarrollar
-    #
+    copy_dataset= copy(datasetNCHW)
+    num, channels, height, width = size(copy_dataset)
+    col = Int((width *(1 -  ratioCrop)) + 1)
+
+    if col <= width
+        copy_dataset[:,:,:,col:end] .= false
+    end
+    return copy_dataset
 end;
 
 function randomImages(numImages::Int, resolution::Int)
-    #
-    # Codigo a desarrollar
-    #
+    
+    return randn(numImages,1 , resolution, resolution) .> 0
+
 end;
 
 function averageMNISTImages(imageArray::AbstractArray{<:Real,4}, labelArray::AbstractArray{Int,1})
@@ -441,8 +438,6 @@ function averageMNISTImages(imageArray::AbstractArray{<:Real,4}, labelArray::Abs
     end
     return (imagesNCHW, labels)
 end;
-
-
 
 function classifyMNISTImages(imageArray::AbstractArray{<:Bool,4}, templateInputs::AbstractArray{<:Bool,4}, templateLabels::AbstractArray{Int,1})
     outputs = ones(Int, size(imageArray, 1))*-1
@@ -473,7 +468,7 @@ function calculateMNISTAccuracies(datasetFolder::String, labels::AbstractArray{I
 
     testMatrix = runHopfield(hopfieldNet, umbralTestImages)
     testPredictions = classifyMNISTImages(testMatrix, umbralTemplateInputs, templateLabels)
-    testAccuracy = mean(testPredictions.==filteredTrainLabels)
+    testAccuracy = mean(testPredictions.==filteredTestLabels)
 
     return (trainingAccuracy, testAccuracy)
 end;
