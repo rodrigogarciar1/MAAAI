@@ -496,41 +496,31 @@ Batch = Tuple{AbstractArray{<:Real,2}, AbstractArray{<:Any,1}}
 
 
 function batchInputs(batch::Batch)
-    #
-    # Codigo a desarrollar
-    #
 end;
 
 function batchTargets(batch::Batch)
-    #
-    # Codigo a desarrollar
-    #
 end;
 
 function batchLength(batch::Batch)
-    #
-    # Codigo a desarrollar
-    #
 end;
 
 function selectInstances(batch::Batch, indices::Any)
-    #
-    # Codigo a desarrollar
-    #
+    return (batchInputs(batch)[indices,:], batchTargets(batch)[indices])
 end;
 
 function joinBatches(batch1::Batch, batch2::Batch)
-    #
-    # Codigo a desarrollar
-    #
+    return (vcat(batchInputs(batch1),batchInputs(batch2)), vcat(batchTargets(batch1), batchTargets(batch2)))
 end;
 
 
 function divideBatches(dataset::Batch, batchSize::Int; shuffleRows::Bool=false)
-    #
-    # Codigo a desarrollar
-    #
-end;
+    numInstances = batchLength(dataset)
+    
+    indices = shuffleRows ? shuffle(1:numInstances) : collect(1:numInstances) #si verdadero random si no ordenado
+    particiones = Base.Iterators.partition(indices, batchSize) #devuelve particiones de los indices segun el tamaño de batch
+    
+    return [selectInstances(dataset, batch) for batch in particiones] #iteramos sobre los batches para devolver las divisiones
+end
 
 function trainSVM(dataset::Batch, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.,
