@@ -326,7 +326,6 @@ println()
 MNISTDataset = loadMNISTDataset(datasetFolder; labels=[2,8], datasetType=Float32);
 
 templateInputs, templateLabels = averageMNISTImages(MNISTDataset[1], MNISTDataset[2]);
-println(size(templateInputs[1]))
 @assert(size(templateInputs)==(2,1,28,28))
 @assert(eltype(templateInputs)==Float32)
 @assert(length(templateLabels)==2)
