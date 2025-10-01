@@ -535,16 +535,51 @@ end;
 function trainSVM(dataset::Batch, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.,
     supportVectors::Batch=( Array{eltype(dataset[1]),2}(undef,0,size(dataset[1],2)) , Array{eltype(dataset[2]),1}(undef,0) ) )
-    #
-    # Codigo a desarrollar
-    #
+
+    dataset = joinBatches(supportVectors, dataset)
+
+    model = SVMClassifier(
+        kernel =
+            kernel=="linear" ? LIBSVM.Kernel.Linear :
+            kernel=="rbf" ? LIBSVM.Kernel.RadialBasis :
+            kernel=="poly" ? LIBSVM.Kernel.Polynomial :
+            kernel=="sigmoid" ? LIBSVM.Kernel.Sigmoid : nothing,
+        cost = Float64(C),
+        gamma = Float64(gamma),
+        degree = Int32( degree),
+        coef0 = Float64(coef0)
+        );
+
+    inputs = batchInputs(dataset)
+    targets = batchTargets(dataset)
+    mach = machine(model, MLJ.table(inputs), categorical(targets));
+
+    MLJ.fit!(mach, verbosity = 0);
+
+    indicesNewSupportVectors = sort( mach.fitresult[1].SVs.indices ); 
+
+    N = batchLength(supportVectors)
+    indicesConjuntoVectores = all(indicesNewSupportVectors.<= N)
+    indicesConjuntoEntrenamiento = all(indicesNewSupportVectors>N)
+    indicesConjuntoEntrenamiento = indicesConjuntoEntrenamiento.-N
+
+    return (mach
+            , joinBatches(selectInstances(supportVectors, indicesConjuntoVectores)
+                        , selectInstances(dataset, indicesConjuntoEntrenamiento))
+            , (indicesConjuntoVectores, indicesConjuntoEntrenamiento) )
 end;
 
 function trainSVM(batches::AbstractArray{<:Batch,1}, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.)
-    #
-    # Codigo a desarrollar
-    #
+    
+    vectoresSoporte = Batch
+    mach = nothing
+
+    for batch in batches
+        (mach, vectoresSoporte, _) = trainSVM(dataset = batch, kernel = kernel, C = C, degree = degree, gamma = gamma, coef0 = coef0, supportVectors = vectoresSoporte)
+    end
+
+    return mach
 end;
 
 
