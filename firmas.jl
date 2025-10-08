@@ -595,9 +595,9 @@ function initializeStreamLearningData(datasetFolder::String, windowSize::Int, ba
 end;
 
 function addBatch!(memory::Batch, newBatch::Batch)
-    #
-    # Codigo a desarrollar
-    #
+    _, oldBatch = divideBatches(memory, batchLength(newBatch))
+    memory = joinBatches(oldBatch, newBatch)
+    return memory
 end;
 
 function streamLearning_SVM(datasetFolder::String, windowSize::Int, batchSize::Int, kernel::String, C::Real;
@@ -615,15 +615,24 @@ function streamLearning_ISVM(datasetFolder::String, windowSize::Int, batchSize::
 end;
 
 function euclideanDistances(dataset::Batch, instance::AbstractArray{<:Real,1})
-    #
-    # Codigo a desarrollar
-    #
+    instance = instance'
+    entradas = batchInputs(dataset)
+
+    diferencia = entradas.-instance
+
+    diferencia = diferencia.^2
+
+    diferencia = sum(diferencia, dims = 2)
+
+    return vec(sqrt.(diferencia))
 end;
 
 function nearestElements(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
-    #
-    # Codigo a desarrollar
-    #
+    difs = euclideanDistances(dataset, instance)
+
+    sorted = partialsortperm(difs, k)
+
+    return selectInstances(dataset, sorted)
 end;
 
 function predictKNN(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
