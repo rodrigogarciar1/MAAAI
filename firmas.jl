@@ -552,9 +552,13 @@ function trainSVM(dataset::Batch, kernel::String, C::Real;
     indicesNewSupportVectors = sort( mach.fitresult[1].SVs.indices ); 
 
     N = batchLength(supportVectors)
-    indicesConjuntoVectores = all(indicesNewSupportVectors.<= N)
-    indicesConjuntoEntrenamiento = all(indicesNewSupportVectors>N)
-    indicesConjuntoEntrenamiento = indicesConjuntoEntrenamiento.-N
+
+    indicesVectores = findall(x -> x <=N, indicesNewSupportVectors)
+    indicesConjuntoVectores = indicesNewSupportVectors[indicesVectores]
+
+    indicesEntrenamiento = findall(x -> x > N, indicesNewSupportVectors)
+
+    indicesConjuntoEntrenamiento = indicesNewSupportVectors[indicesEntrenamiento].-N
 
     return (mach
             , joinBatches(selectInstances(supportVectors, indicesConjuntoVectores)
@@ -565,11 +569,11 @@ end;
 function trainSVM(batches::AbstractArray{<:Batch,1}, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.)
     
-    vectoresSoporte = Batch
+    vectoresSoporte = ( Array{eltype(dataset[1]),2}(undef,0,size(dataset[1],2)) , Array{eltype(dataset[2]),1}(undef,0) )
     mach = nothing
 
-    for batch in batches
-        (mach, vectoresSoporte, _) = trainSVM(dataset = batch, kernel = kernel, C = C, degree = degree, gamma = gamma, coef0 = coef0, supportVectors = vectoresSoporte)
+    for i in eachindex(batches)
+        mach, vectoresSoporte, _ = trainSVM(batches[i], kernel, C, degree = degree, gamma = gamma, coef0 = coef0, supportVectors = vectoresSoporte)
     end
 
     return mach

@@ -88,8 +88,8 @@ model, newSupportVectors, newSupportVectorIndices = trainSVM( selectInstances(da
 @assert(issorted(newSupportVectorIndices[1]))
 @assert(issorted(newSupportVectorIndices[2]))
 @assert(joinBatches(
-    selectInstances(supportVectors, newSupportVectorIndices[1]),
-    selectInstances( selectInstances(dataset, 101:208 ), newSupportVectorIndices[2])) == newSupportVectors)
+   selectInstances(supportVectors, newSupportVectorIndices[1]),
+   selectInstances( selectInstances(dataset, 101:208 ), newSupportVectorIndices[2])) == newSupportVectors)
 
 
 model = trainSVM(divideBatches(dataset, 100; shuffleRows=false), "rbf", 10; gamma=4)
