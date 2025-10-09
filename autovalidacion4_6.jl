@@ -93,11 +93,12 @@ model, newSupportVectors, newSupportVectorIndices = trainSVM( selectInstances(da
 
 
 model = trainSVM(divideBatches(dataset, 100; shuffleRows=false), "rbf", 10; gamma=4)
-@assert(findall(predict(model, batchInputs(selectInstances(dataset, 1:20)))) == 13:20)
+@assert(findall(x-> x==true,predict(model, batchInputs(selectInstances(dataset, 1:20)))) == 13:20)
 
 
-
-
+println("------------------")
+println("Test trainSVM pasados")
+println("------------------")
 
 
 

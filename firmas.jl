@@ -529,7 +529,7 @@ function trainSVM(dataset::Batch, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.,
     supportVectors::Batch=( Array{eltype(dataset[1]),2}(undef,0,size(dataset[1],2)) , Array{eltype(dataset[2]),1}(undef,0) ) )
 
-    dataset = joinBatches(supportVectors, dataset)
+    newDataset = joinBatches(supportVectors, dataset)
 
     model = SVMClassifier(
         kernel =
@@ -543,8 +543,8 @@ function trainSVM(dataset::Batch, kernel::String, C::Real;
         coef0 = Float64(coef0)
         );
 
-    inputs = batchInputs(dataset)
-    targets = batchTargets(dataset)
+    inputs = batchInputs(newDataset)
+    targets = batchTargets(newDataset)
     mach = machine(model, MLJ.table(inputs), categorical(targets));
 
     MLJ.fit!(mach, verbosity = 0);
@@ -556,8 +556,8 @@ function trainSVM(dataset::Batch, kernel::String, C::Real;
     indicesVectores = findall(x -> x <=N, indicesNewSupportVectors)
     indicesConjuntoVectores = indicesNewSupportVectors[indicesVectores]
 
+    
     indicesEntrenamiento = findall(x -> x > N, indicesNewSupportVectors)
-
     indicesConjuntoEntrenamiento = indicesNewSupportVectors[indicesEntrenamiento].-N
 
     return (mach
