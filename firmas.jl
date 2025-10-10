@@ -569,7 +569,7 @@ end;
 function trainSVM(batches::AbstractArray{<:Batch,1}, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.)
     
-    vectoresSoporte = ( Array{eltype(dataset[1]),2}(undef,0,size(dataset[1],2)) , Array{eltype(dataset[2]),1}(undef,0) )
+    vectoresSoporte = ( Array{eltype(batches[1][1]),2}(undef,0,size(batches[1][1],2)) , Array{eltype(batches[1][2]),1}(undef,0) )
     mach = nothing
 
     for i in eachindex(batches)
@@ -595,8 +595,12 @@ function initializeStreamLearningData(datasetFolder::String, windowSize::Int, ba
 end;
 
 function addBatch!(memory::Batch, newBatch::Batch)
-    _, oldBatch = divideBatches(memory, batchLength(newBatch))
-    memory = joinBatches(oldBatch, newBatch)
+    memory[1] = memory[:, length(newBatch[1]):end]
+    memory[2] = memory[:, length(newBatch[2]):end]
+
+    append!(memory[1], newBatch[1])
+    append!(memory[2], newBatch[2])
+
     return memory
 end;
 
@@ -632,7 +636,9 @@ function nearestElements(dataset::Batch, instance::AbstractArray{<:Real,1}, k::I
 
     sorted = partialsortperm(difs, k)
 
-    return selectInstances(dataset, sorted)
+    a,b = selectInstances(dataset, sorted)
+
+    return joinBatches(a,b)
 end;
 
 function predictKNN(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
