@@ -595,12 +595,15 @@ function initializeStreamLearningData(datasetFolder::String, windowSize::Int, ba
 end;
 
 function addBatch!(memory::Batch, newBatch::Batch)
-    memory[1] = memory[:, length(newBatch[1]):end]
-    memory[2] = memory[:, length(newBatch[2]):end]
+    inputs = batchInputs(memory)
+    targets = batchTargets(memory)
+    inputs = inputs[:, length(batchInputs(newBatch)):end]
+    targets = targets[:, length(batchTargets(newBatch)):end]
 
-    append!(memory[1], newBatch[1])
-    append!(memory[2], newBatch[2])
+    append!(inputs, batchInputs(newBatch))
+    append!(targets, batchTargets(newBatch))
 
+    memory = (inputs, targets)
     return memory
 end;
 
@@ -638,7 +641,7 @@ function nearestElements(dataset::Batch, instance::AbstractArray{<:Real,1}, k::I
 
     a,b = selectInstances(dataset, sorted)
 
-    return joinBatches(a,b)
+    return (a,b)
 end;
 
 function predictKNN(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
