@@ -655,9 +655,14 @@ function predictKNN(dataset::Batch, instances::AbstractArray{<:Real,2}, k::Int)
 end;
 
 function streamLearning_KNN(datasetFolder::String, windowSize::Int, batchSize::Int, k::Int)
-    #
-    # Codigo a desarrollar
-    #
+    memory, batches = initializeStreamLearningData(datasetFolder=datasetFolder, windowSize=windowSize, batchSize=batchSize)
+    precision = zeross(batchLength(batches))
+    for (i,batch) in enumerate(batches)
+        predicciones = predictKNN(memory, batchInputs(batch),k)
+        precision[i] = mean(predicciones .== batchTargets(batch))
+        addBatch!(memory,batch)
+    end
+    return precision
 end;
 
 
