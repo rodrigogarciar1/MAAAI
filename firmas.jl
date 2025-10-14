@@ -645,14 +645,13 @@ function nearestElements(dataset::Batch, instance::AbstractArray{<:Real,1}, k::I
 end;
 
 function predictKNN(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
-    instancias_cercanas = nearestElements(dataset=dataset, instance = instance)
+    instancias_cercanas = nearestElements(dataset=dataset, instance = instance, k=k)
     salidas = batchTargets(instancias_cercanas)
-    salidas = mode(salidas)
-    return salidas
+    return mode(salidas)
 end;
 
 function predictKNN(dataset::Batch, instances::AbstractArray{<:Real,2}, k::Int)
-    
+    return [predictKNN(dataset, instance,k) for instance in eachrow(instances)] 
 end;
 
 function streamLearning_KNN(datasetFolder::String, windowSize::Int, batchSize::Int, k::Int)
