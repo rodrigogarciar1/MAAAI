@@ -589,9 +589,22 @@ end;
 
 
 function initializeStreamLearningData(datasetFolder::String, windowSize::Int, batchSize::Int)
-    #
-    # Codigo a desarrollar
-    #
+    # Cargar el dataset completo
+    inputs, targets = loadStreamLearningDataset(datasetFolder, datasetType=Float32)
+    
+    # Crear el dataset completo como Batch
+    dataset = (convert(Matrix{Float32}, inputs), targets)
+    
+    # Separar la memoria inicial (primeras windowSize instancias)
+    memory = selectInstances(dataset, 1:windowSize)
+    
+    # Obtener el resto de datos para el flujo
+    remainingData = selectInstances(dataset, (windowSize+1):batchLength(dataset))
+    
+    # Dividir en batches
+    batches = divideBatches(remainingData, batchSize, shuffleRows=false)
+    
+    return (memory, batches)
 end;
 
 function addBatch!(memory::Batch, newBatch::Batch)
@@ -609,16 +622,84 @@ end;
 
 function streamLearning_SVM(datasetFolder::String, windowSize::Int, batchSize::Int, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.)
-    #
-    # Codigo a desarrollar
-    #
+    
+    # Inicializar memoria y batches
+    memory, batches = initializeStreamLearningData(datasetFolder, windowSize, batchSize)
+    
+    # Entrenar el primer SVM con la memoria inicial
+    model, _, _ = trainSVM(memory, kernel, C, degree=degree, gamma=gamma, coef0=coef0)
+    
+    # Vector para almacenar las precisiones
+    accuracies = Vector{Float64}(undef, length(batches))
+    
+    # Bucle sobre los batches
+    for i in eachindex(batches)
+        # Hacer test con el estado actual
+        predictions = predict(model, batchInputs(batches[i]))
+        accuracies[i] = mean(predictions .== batchTargets(batches[i]))
+        
+        # Actualizar la memoria con el batch actual
+        memory = addBatch!(memory, batches[i])
+        
+        # Entrenar nuevo SVM con la memoria actualizada
+        model, _, _ = trainSVM(memory, kernel, C, degree=degree, gamma=gamma, coef0=coef0)
+    end
+    
+    return accuracies
 end;
 
 function streamLearning_ISVM(datasetFolder::String, windowSize::Int, batchSize::Int, kernel::String, C::Real;
     degree::Real=1, gamma::Real=2, coef0::Real=0.)
-    #
-    # Codigo a desarrollar
-    #
+
+    # Inicializar batch inicial y flujo de datos
+    initialBatch, batches = initializeStreamLearningData(datasetFolder, batchSize, batchSize)
+    
+    # Entrenar el primer SVM (warm start)
+    model, supportVectors, (_, indicesSupportVectorsInFirstBatch) = trainSVM(initialBatch, kernel, C, degree=degree, gamma=gamma, coef0=coef0)
+    
+    # Crear vector de edad de los patrones del batch inicial
+    ageVector = collect(batchSize:-1:1)
+    # Seleccionar las edades de los vectores de soporte
+    supportVectorsAge = ageVector[indicesSupportVectorsInFirstBatch]
+    
+    # Vector para almacenar las precisiones
+    accuracies = Vector{Float64}(undef, length(batches))
+    
+    # Bucle sobre los batches del flujo de datos
+    for i in eachindex(batches)
+        # Hacer test con el estado actual
+        predictions = predict(model, batchInputs(batches[i]))
+        accuracies[i] = mean(predictions .== batchTargets(batches[i]))
+        
+        # Actualizar el vector de edad sumando el tamaño del nuevo batch
+        supportVectorsAge .+= batchLength(batches[i])
+        
+        # Seleccionar vectores de soporte con edad <= windowSize
+        indicesValidAge = findall(x -> x <= windowSize, supportVectorsAge)
+        supportVectors = selectInstances(supportVectors, indicesValidAge)
+        supportVectorsAge = supportVectorsAge[indicesValidAge]
+        
+        # Entrenar nuevo SVM con vectores de soporte válidos
+        model, newSupportVectors, (indicesPrevSV, indicesCurrentBatch) = trainSVM(batches[i], kernel, C, degree=degree, gamma=gamma, coef0=coef0, supportVectors=supportVectors)
+        
+        # Crear nuevo batch con los vectores de soporte seleccionados
+        supportVectors = joinBatches(
+            selectInstances(supportVectors, indicesPrevSV),
+            selectInstances(batches[i], indicesCurrentBatch)
+        )
+        
+        # Crear nuevo vector de edades
+        N = batchLength(batches[i])
+        newBatchAges = collect(N:-1:1)
+        supportVectorsAge = vcat(
+            supportVectorsAge[indicesPrevSV],
+            newBatchAges[indicesCurrentBatch]
+        )
+        
+        @assert length(supportVectorsAge) == batchLength(supportVectors) "Error: El número de edades no coincide con el número de vectores de soporte"
+    end
+    
+    return accuracies
 end;
 
 function euclideanDistances(dataset::Batch, instance::AbstractArray{<:Real,1})
