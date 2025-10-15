@@ -726,7 +726,7 @@ function nearestElements(dataset::Batch, instance::AbstractArray{<:Real,1}, k::I
 end;
 
 function predictKNN(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
-    instancias_cercanas = nearestElements(dataset=dataset, instance = instance, k=k)
+    instancias_cercanas = nearestElements(dataset, instance, k)
     salidas = batchTargets(instancias_cercanas)
     return mode(salidas)
 end;
@@ -736,7 +736,7 @@ function predictKNN(dataset::Batch, instances::AbstractArray{<:Real,2}, k::Int)
 end;
 
 function streamLearning_KNN(datasetFolder::String, windowSize::Int, batchSize::Int, k::Int)
-    memory, batches = initializeStreamLearningData(datasetFolder=datasetFolder, windowSize=windowSize, batchSize=batchSize)
+    memory, batches = initializeStreamLearningData(datasetFolder, windowSize, batchSize)
     precision = zeross(batchLength(batches))
     for (i,batch) in enumerate(batches)
         predicciones = predictKNN(memory, batchInputs(batch),k)
