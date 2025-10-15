@@ -121,6 +121,7 @@ println("------------------")
 println("Test initializeStreamLearningData pasados")
 println("------------------")
 
+
 addBatch!(memory, batchList[1])
 @assert(all(isapprox.(mean.(memory), (0.25013414f0, 0.531))))
 

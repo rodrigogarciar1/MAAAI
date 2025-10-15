@@ -610,14 +610,16 @@ end;
 function addBatch!(memory::Batch, newBatch::Batch)
     inputs = batchInputs(memory)
     targets = batchTargets(memory)
-    inputs = inputs[:, length(batchInputs(newBatch)):end]
-    targets = targets[:, length(batchTargets(newBatch)):end]
 
-    append!(inputs, batchInputs(newBatch))
-    append!(targets, batchTargets(newBatch))
+    inputs = cat(inputs, batchInputs(newBatch), dims=1)
+    targets = cat(targets, batchTargets(newBatch), dims=1)
 
-    memory = (inputs, targets)
-    return memory
+    
+    inputs = inputs[size(batchInputs(newBatch), 1)+1:end, :]
+    targets = targets[size(batchTargets(newBatch), 1)+1:end, :]
+
+    memory[1][:,:] = inputs
+    memory[2][:] = targets
 end;
 
 function streamLearning_SVM(datasetFolder::String, windowSize::Int, batchSize::Int, kernel::String, C::Real;
@@ -625,7 +627,6 @@ function streamLearning_SVM(datasetFolder::String, windowSize::Int, batchSize::I
     
     # Inicializar memoria y batches
     memory, batches = initializeStreamLearningData(datasetFolder, windowSize, batchSize)
-    
     # Entrenar el primer SVM con la memoria inicial
     model, _, _ = trainSVM(memory, kernel, C, degree=degree, gamma=gamma, coef0=coef0)
     
@@ -639,7 +640,7 @@ function streamLearning_SVM(datasetFolder::String, windowSize::Int, batchSize::I
         accuracies[i] = mean(predictions .== batchTargets(batches[i]))
         
         # Actualizar la memoria con el batch actual
-        memory = addBatch!(memory, batches[i])
+        addBatch!(memory, batches[i])
         
         # Entrenar nuevo SVM con la memoria actualizada
         model, _, _ = trainSVM(memory, kernel, C, degree=degree, gamma=gamma, coef0=coef0)
@@ -718,11 +719,11 @@ end;
 function nearestElements(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
     difs = euclideanDistances(dataset, instance)
 
-    sorted = partialsortperm(difs, k)
+    sorted = partialsortperm(difs, 1:k)
 
-    a,b = selectInstances(dataset, sorted)
+    batch = selectInstances(dataset, sorted)
 
-    return (a,b)
+    return batch
 end;
 
 function predictKNN(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int)
@@ -737,7 +738,7 @@ end;
 
 function streamLearning_KNN(datasetFolder::String, windowSize::Int, batchSize::Int, k::Int)
     memory, batches = initializeStreamLearningData(datasetFolder, windowSize, batchSize)
-    precision = zeross(batchLength(batches))
+    precision = zeros(length(batches))
     for (i,batch) in enumerate(batches)
         predicciones = predictKNN(memory, batchInputs(batch),k)
         precision[i] = mean(predicciones .== batchTargets(batch))
