@@ -756,14 +756,29 @@ end;
 
 
 function predictKNN_SVM(dataset::Batch, instance::AbstractArray{<:Real,1}, k::Int, C::Real)
-    #
-    # Codigo a desarrollar
-    #
+    closestBatch = nearestElements(dataset, instance, k)
+
+    if length(unique(batchTargets(closestBatch))) == 1
+        return batchTargets(closestBatch)[1]
+    end
+
+    model = SVMClassifier(
+            kernel=LIBSVM.Kernel.Linear,
+            cost = Float64(C),
+        );
+
+    inputs = batchInputs(closestBatch)
+    targets = batchTargets(closestBatch)
+    mach = machine(model, MLJ.table(inputs), categorical(targets));
+
+    MLJ.fit!(mach, verbosity = 0);
+
+    prediction = predict(mach, reshape(instance, (1, :)))
+
+    return prediction[1]
+
 end;
 
 function predictKNN_SVM(dataset::Batch, instances::AbstractArray{<:Real,2}, k::Int, C::Real)
-    #
-    # Codigo a desarrollar
-    #
+    return predictKNN_SVM.(Ref(dataset), eachrow(instances), k, C)
 end;
-
