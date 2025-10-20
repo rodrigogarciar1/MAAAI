@@ -780,5 +780,5 @@ function predictKNN_SVM(dataset::Batch, instance::AbstractArray{<:Real,1}, k::In
 end;
 
 function predictKNN_SVM(dataset::Batch, instances::AbstractArray{<:Real,2}, k::Int, C::Real)
-    return predictKNN_SVM.(Ref(dataset), eachrow(instances), k, C)
+    return [predictKNN_SVM(dataset, instance, k, C) for instance in eachrow(instances)]
 end;
