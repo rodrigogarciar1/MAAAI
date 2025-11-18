@@ -774,7 +774,6 @@ function predictKNN_SVM(dataset::Batch, instance::AbstractArray{<:Real,1}, k::In
     MLJ.fit!(mach, verbosity = 0);
 
     prediction = predict(mach, reshape(instance, (1, :)))
-
     return convert(typeof(targets[1]), prediction[1])
 
 end;
