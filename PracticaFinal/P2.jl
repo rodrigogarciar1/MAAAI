@@ -75,7 +75,7 @@ function normalizeMinMax!(dataset::AbstractArray{<:Real,2}, normalizationParamet
     maxValues = normalizationParameters[2];
     
     dataset .-= minValues; # Le resta a todo el dataset el valor mínimo por columnas 
-    dataset ./= (maxValues .- minValues); # Divide por columnas entre max-min.
+    dataset ./= (maxValues .- minValues) .+ 1e-7; # Divide por columnas entre max-min.
     # Si hay algun atributo en el que todos los valores son iguales, se pone a 0
     dataset[:, vec(minValues.==maxValues)] .= 0;
     return dataset;
@@ -116,4 +116,31 @@ function holdOut(N::Int, P::Real)
     test = Lista[1:applied_percentages]
     training = Lista[applied_percentages+1:N]
     return (training, test)
+end;
+
+function crossvalidation(N::Int64, k::Int64)
+    array = collect(1:k);
+    array2 = repeat(array, ceil(Int, N/k));
+    array2 = array2[1:N];
+    shuffle!(array2);
+    return array2;
+end;
+
+function crossvalidation(feature::AbstractArray{Bool,1}, k::Int64)
+    array = collect(1:length(feature));
+    array[findall(x->x==true, feature)] = crossvalidation(count(feature.==true), k);
+    array[findall(x->x==false, feature)] = crossvalidation(count(feature.==false), k);
+    return array;
+end;
+
+function crossvalidation(feature::AbstractArray{Bool,2}, k::Int64)
+    array = collect(1:size(feature,1));
+    for j in eachcol(feature)
+        array[findall(x->x==true, j)] = crossvalidation(sum(j), k);
+    end;
+    return array;
+end;
+
+function crossvalidation(feature::AbstractArray{<:Any,1}, k::Int64)
+    crossvalidation(oneHotEncoding(feature), k);
 end;
