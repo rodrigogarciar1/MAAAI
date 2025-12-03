@@ -144,3 +144,31 @@ end;
 function crossvalidation(feature::AbstractArray{<:Any,1}, k::Int64)
     crossvalidation(oneHotEncoding(feature), k);
 end;
+
+function individualWiseFoldCrossValidation(individuals, data, targets, folds)
+    crossValidationSubjects = crossvalidation(length(unique(individuals)),folds)
+
+    println(crossValidationSubjects)
+
+    foldTrainData = []
+    foldTrainTargets = []
+    foldValData = []
+    foldValTargets = []
+
+    for i in 1:folds
+        foldValUniqueIndividualIndices = findall(x-> x == i, crossValidationSubjects)
+        foldValIndividuals = unique(individuals)[foldValUniqueIndividualIndices]
+        println("Individuos", foldValIndividuals)
+
+        valIndices = findall(x-> x in foldValIndividuals, individuals)
+        trainIndices = findall(x-> !(x  in foldValIndividuals), individuals)
+        println(valIndices)
+        push!(foldValData, data[valIndices, :])
+        push!(foldValTargets, targets[valIndices, :])
+
+        push!(foldTrainData, data[trainIndices, :])
+        push!(foldTrainTargets, targets[trainIndices, :])
+    end
+
+    return foldTrainData, foldTrainTargets, foldValData, foldValTargets
+end;
