@@ -172,3 +172,49 @@ function individualWiseFoldCrossValidation(individuals, data, targets, folds)
 
     return foldTrainData, foldTrainTargets, foldValData, foldValTargets
 end;
+
+# -----------------------------------------
+# ----------- MinMaxNormalizer ------------
+# -----------------------------------------
+
+using MLJModelInterface
+using Tables
+using Statistics
+
+mutable struct MinMaxNormalizer <: Unsupervised
+    mins::Vector{Float64}
+    maxs::Vector{Float64}
+end
+
+MinMaxNormalizer() = MinMaxNormalizer(Float64[], Float64[])
+
+
+function MLJModelInterface.fit(model::MinMaxNormalizer, verbosity::Int, X)
+    Xmat = Tables.matrix(X)
+
+    mins = mapslices(minimum, Xmat; dims=1) |> vec
+    maxs = mapslices(maximum, Xmat; dims=1) |> vec
+
+    fitresult = (mins, maxs)
+    cache = nothing
+    report = nothing
+
+    return fitresult, cache, report
+end
+
+function MLJModelInterface.transform(
+    model::MinMaxNormalizer,
+    fitresult,
+    X
+)
+    mins, maxs = fitresult
+    Xmat = Tables.matrix(X)
+
+    Xscaled = (Xmat .- mins') ./ (maxs' .- mins')
+
+    return Tables.table(Xscaled, header=Tables.columnnames(X))
+end
+
+MLJModelInterface.input_scitype(::Type{MinMaxNormalizer}) = Table(Continuous)
+MLJModelInterface.output_scitype(::Type{MinMaxNormalizer}) = Table(Continuous)
+
