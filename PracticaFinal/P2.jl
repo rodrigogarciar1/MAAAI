@@ -144,3 +144,77 @@ end;
 function crossvalidation(feature::AbstractArray{<:Any,1}, k::Int64)
     crossvalidation(oneHotEncoding(feature), k);
 end;
+
+function individualWiseFoldCrossValidation(individuals, data, targets, folds)
+    crossValidationSubjects = crossvalidation(length(unique(individuals)),folds)
+
+    println(crossValidationSubjects)
+
+    foldTrainData = []
+    foldTrainTargets = []
+    foldValData = []
+    foldValTargets = []
+
+    for i in 1:folds
+        foldValUniqueIndividualIndices = findall(x-> x == i, crossValidationSubjects)
+        foldValIndividuals = unique(individuals)[foldValUniqueIndividualIndices]
+        println("Individuos", foldValIndividuals)
+
+        valIndices = findall(x-> x in foldValIndividuals, individuals)
+        trainIndices = findall(x-> !(x  in foldValIndividuals), individuals)
+        println(valIndices)
+        push!(foldValData, data[valIndices, :])
+        push!(foldValTargets, targets[valIndices, :])
+
+        push!(foldTrainData, data[trainIndices, :])
+        push!(foldTrainTargets, targets[trainIndices, :])
+    end
+
+    return foldTrainData, foldTrainTargets, foldValData, foldValTargets
+end;
+
+# -----------------------------------------
+# ----------- MinMaxNormalizer ------------
+# -----------------------------------------
+
+using MLJModelInterface
+using Tables
+using Statistics
+
+mutable struct MinMaxNormalizer <: Unsupervised
+    mins::Vector{Float64}
+    maxs::Vector{Float64}
+end
+
+MinMaxNormalizer() = MinMaxNormalizer(Float64[], Float64[])
+
+
+function MLJModelInterface.fit(model::MinMaxNormalizer, verbosity::Int, X)
+    Xmat = Tables.matrix(X)
+
+    mins = mapslices(minimum, Xmat; dims=1) |> vec
+    maxs = mapslices(maximum, Xmat; dims=1) |> vec
+
+    fitresult = (mins, maxs)
+    cache = nothing
+    report = nothing
+
+    return fitresult, cache, report
+end
+
+function MLJModelInterface.transform(
+    model::MinMaxNormalizer,
+    fitresult,
+    X
+)
+    mins, maxs = fitresult
+    Xmat = Tables.matrix(X)
+
+    Xscaled = (Xmat .- mins') ./ (maxs' .- mins')
+
+    return Tables.table(Xscaled, header=Tables.columnnames(X))
+end
+
+MLJModelInterface.input_scitype(::Type{MinMaxNormalizer}) = Table(Continuous)
+MLJModelInterface.output_scitype(::Type{MinMaxNormalizer}) = Table(Continuous)
+
