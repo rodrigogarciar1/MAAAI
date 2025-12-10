@@ -178,8 +178,12 @@ end;
 # -----------------------------------------
 
 using MLJModelInterface
+using MLJBase
 using Tables
 using Statistics
+import MLJModelInterface: fit, transform, input_scitype, target_scitype, output_scitype
+
+
 
 mutable struct MinMaxNormalizer <: Unsupervised
     mins::Vector{Float64}
@@ -189,8 +193,8 @@ end
 MinMaxNormalizer() = MinMaxNormalizer(Float64[], Float64[])
 
 
-function MLJModelInterface.fit(model::MinMaxNormalizer, verbosity::Int, X)
-    Xmat = Tables.matrix(X)
+function fit(model::MinMaxNormalizer, verbosity::Int, X)
+    Xmat = Float64.(MLJBase.matrix(X))
 
     mins = mapslices(minimum, Xmat; dims=1) |> vec
     maxs = mapslices(maximum, Xmat; dims=1) |> vec
@@ -202,17 +206,17 @@ function MLJModelInterface.fit(model::MinMaxNormalizer, verbosity::Int, X)
     return fitresult, cache, report
 end
 
-function MLJModelInterface.transform(
+function transform(
     model::MinMaxNormalizer,
     fitresult,
     X
 )
     mins, maxs = fitresult
-    Xmat = Tables.matrix(X)
+    Xmat = MLJBase.matrix(X)
 
     Xscaled = (Xmat .- mins') ./ (maxs' .- mins')
 
-    return Tables.table(Xscaled, header=Tables.columnnames(X))
+    return MLJBase.table(Xscaled)
 end
 
 MLJModelInterface.input_scitype(::Type{MinMaxNormalizer}) = Table(Continuous)
