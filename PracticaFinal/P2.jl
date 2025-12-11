@@ -365,3 +365,76 @@ end
 input_scitype(::Type{<:MutualInformation}) = Table(Continuous)
 target_scitype(::Type{<:MutualInformation}) = AbstractVector{<:Finite}
 output_scitype(::Type{<:MutualInformation}) = Table(Continuous)
+
+
+# ===============================
+# ANOVA SelectKBest Filter
+# ===============================
+# Definir la estructura del modelo
+mutable struct RFE <: MLJModelInterface.Supervised
+    k::Int
+end
+
+# Constructor con argumentos por nombre (estilo MLJ)
+RFE(; k::Int=2) = RFE(k)
+
+# Se hace la importación de las funciones necesarias para poder sobrecargarlas
+import MLJModelInterface: fit, transform, input_scitype, target_scitype, output_scitype
+using MLJLinearModels
+# Definir la función fit
+function fit(model::RFE, verbosity::Int, X, y)
+    # Convertir X a matriz y asegurarse que es Float64
+    Xmat = Float64.(MLJBase.matrix(X))
+    
+    # Convertir y a vector numérico si es categórico
+    y_numeric = y isa CategoricalVector ? Int.(levelcode.(y)) : Int.(y)
+    modelo = LogistigRegression(0.5)
+    # Calcular F-statistics usando HypothesisTests
+    
+    n_features = size(Xmat, 2)
+    fstats = zeros(Float64, n_features)
+
+    while true
+        theta = MLJLinearModels.fit(modelo, Xmat, y_numeric)
+        cut = min(Int(length(theta)/2) +1, length(theta)-k +1)
+        worstColumns = sortperm(theta, rev=true)[cut:end]
+        fstats[worstColumns] = -1
+
+        if length(theta)>k break; end
+
+        Xmat = Xmat[:, 1:end .≠ eachcol(worstColumns)]
+        
+    end
+    
+    # Seleccionar top k features con mayor F-statistic
+    k_actual = min(model.k, n_features)
+    idxs = sortperm(fstats, rev=true)[1:k_actual]
+    
+    # Guardar los nombres de las columnas originales
+    feature_names = collect(Tables.columnnames(X))
+    selected_names = [feature_names[i] for i in idxs]
+    
+    # IMPORTANTE: fitresult debe contener la info necesaria para transform
+    fitresult = (idxs=idxs, selected_names=selected_names)
+    cache = nothing
+    report = (fstats=fstats, idxs=idxs, selected_features=selected_names)
+    
+    return fitresult, cache, report
+end
+
+# Definir la función transform
+function transform(model::RFE, fitresult, X)
+    # Convertir X a matriz
+    Xmat = MLJBase.matrix(X)
+    
+    # Seleccionar columnas usando fitresult (no cache)
+    X_selected = Xmat[:, fitresult.idxs]
+    
+    # Convertir de vuelta a tabla con nombres apropiados
+    return MLJBase.table(X_selected, names=fitresult.selected_names)
+end     
+
+# Definir los tipos de entrada y salida
+input_scitype(::Type{<:RFE}) = Table(Continuous)
+target_scitype(::Type{<:RFE}) = AbstractVector{<:Finite}
+output_scitype(::Type{<:RFE}) = Table(Continuous)
