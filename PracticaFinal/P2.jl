@@ -390,7 +390,7 @@ function fit(model::RFE, verbosity::Int, X, y)
     y_numeric = y isa CategoricalVector ? Int.(levelcode.(y)) : Int.(y)
     modelo = LogistigRegression(0.5)
     # Calcular F-statistics usando HypothesisTests
-    
+
     n_features = size(Xmat, 2)
     fstats = zeros(Float64, n_features)
 
