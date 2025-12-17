@@ -1,5 +1,8 @@
 using CSV
 using DataFrames
+using MLJBase
+using MLJModels
+using MLJModelInterface
 
 # ------------------------------------------------
 # ------------- Tratamiento de datos -------------
@@ -429,3 +432,41 @@ MLJModelInterface.metadata_model(VotingClassifier,
     supports_weights=false,
     load_path="VotingClassifier"
 )
+
+# ===================================================
+# VISUALIZACIÓN
+# ===================================================
+using ManifoldLearning   # Isomap, LLE
+using TSne               # t-SNE
+
+# --------------- t-SNE ---------------
+function applyTSNE(testData::AbstractMatrix{<:Real}; 
+                   dims::Int=2, perplexity::Float64=30.0)
+    tsne_test = tsne(testData, dims, 50, 300, perplexity)
+    return tsne_test
+end
+
+# --------------- Isomap ---------------
+function applyIsomap(testData::AbstractMatrix{<:Real}; 
+                     n_components::Int=2, n_neighbors::Int=10)
+    k_test = min(n_neighbors * 2, size(testData, 1) - 1)
+
+    isomap_test = ManifoldLearning.fit(ManifoldLearning.Isomap, testData', maxoutdim=n_components, k=k_test)
+    
+    test_proj = collect(isomap_test.model.α)
+    
+    return test_proj, isomap_test.component
+end
+
+# ----------------- LLE -----------------
+function applyLLE(testData::AbstractMatrix{<:Real}; 
+                  n_components::Int=2, n_neighbors::Int=10)
+    # Ajustar modelo LLE con mayor k para evitar componentes desconectados
+    k_test = min(n_neighbors * 2, size(testData, 1) - 1)
+    
+    lle_test = ManifoldLearning.fit(ManifoldLearning.LLE, testData', maxoutdim=n_components, k=k_test)
+    
+    test_proj = collect(transpose(lle_test.proj))
+    
+    return test_proj, lle_test.component
+end
