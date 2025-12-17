@@ -20,12 +20,16 @@ function separateDataframe(df)
     return df[:,1], df[:,2:end-1], df[:,end]
 end
 
-function replaceWithMean!(dataMatrix)
-    for c in eachcol(dataMatrix)
-        nonMissingRows = findall(x-> !ismissing(x), c)
-        columnMean = sum(c[nonMissingRows])/length(dataMatrix[:,1])
-        replace!(c, missing => columnMean)
-       end
+function replaceWithMean!(dataMatrix, subjects)
+    for subject in unique(subjects)
+        subjectData = dataMatrix[findall(x -> x==subject, subjects),:]
+        for c in eachcol(subjectData)
+            nonMissingRows = findall(x-> !ismissing(x), c)
+            columnMean = sum(c[nonMissingRows])/length(dataMatrix[:,1])
+            replace!(c, missing => columnMean)
+        end
+        dataMatrix[findall(x -> x==subject, subjects),:] = subjectData
+    end
     return Array(dataMatrix)
 end
 
