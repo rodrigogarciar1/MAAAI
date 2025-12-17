@@ -374,9 +374,15 @@ output_scitype(::Type{<:MutualInformation}) = Table(Continuous)
 # ===============================
 # ANOVA SelectKBest Filter
 # ===============================
+using MLJModelInterface
+using MLJBase
+using Tables
+using CategoricalArrays
+using MLJLinearModels
+
 # Definir la estructura del modelo
 mutable struct RFE <: MLJModelInterface.Supervised
-    k::Int
+    k::Int               # número de variables a conservar
 end
 
 # Constructor con argumentos por nombre (estilo MLJ)
@@ -384,66 +390,93 @@ RFE(; k::Int=2) = RFE(k)
 
 # Se hace la importación de las funciones necesarias para poder sobrecargarlas
 import MLJModelInterface: fit, transform, input_scitype, target_scitype, output_scitype
-using MLJLinearModels
-# Definir la función fit
+import MLJModelInterface: Table, Continuous, Finite
+
+# -----------------------
+# FIT: entrenamiento RFE
+# -----------------------
 function fit(model::RFE, verbosity::Int, X, y)
-    # Convertir X a matriz y asegurarse que es Float64
+
+    # Convertimos X a matriz de Float64
     Xmat = Float64.(MLJBase.matrix(X))
-    
-    # Convertir y a vector numérico si es categórico
-    y_numeric = y isa CategoricalVector ? Int.(levelcode.(y)) : Int.(y)
-    modelo = LogistigRegression(0.5)
-    # Calcular F-statistics usando HypothesisTests
-
     n_features = size(Xmat, 2)
-    fstats = zeros(Float64, n_features)
 
-    while true
-        theta = MLJLinearModels.fit(modelo, Xmat, y_numeric)
-        cut = min(Int(length(theta)/2) +1, length(theta)-k +1)
-        worstColumns = sortperm(theta, rev=true)[cut:end]
-        fstats[worstColumns] = -1
+    # Convertir y a vector numérico si es categórico
+    y_vec =
+        if y isa CategoricalVector
+            Int.(levelcode.(y))
+        else
+            collect(y)
+        end
 
-        if length(theta)>k break; end
+    # Modelo de regresión logística de MLJLinearModels
+    logreg = LogisticRegression(lambda=0.5)
 
-        Xmat = Xmat[:, 1:end .≠ eachcol(worstColumns)]
-        
+    # Índices de características activos
+    active = collect(1:n_features)
+
+    # Bucle RFE: eliminar el 50 % de las variables en cada iteración
+    while length(active) > model.k
+        # Entrenamos el modelo solo con las columnas activas
+        θ = MLJLinearModels.fit(logreg, Xmat[:, active], y_vec)
+
+        # En muchos modelos lineales de MLJLinearModels el primer coeficiente
+        # suele ser el intercepto; lo excluimos:
+        coefs = θ[2:end]
+
+        n_current = length(active)
+        # Número de variables a eliminar: 50 % de las actuales, pero:
+        #  - al menos 1
+        #  - sin bajar de k variables finales
+        n_to_remove = max(1, floor(Int, n_current/2))
+        n_to_remove = min(n_to_remove, n_current - model.k)
+
+        # Ordenamos por |coef| de menor a mayor (peores primero)
+        order_local = sortperm(abs.(coefs); rev=false)
+        worst_local = order_local[1:n_to_remove]
+
+        # Pasamos estos índices locales a índices globales de columnas
+        worst_global = active[worst_local]
+
+        # Actualizamos el conjunto de columnas activas
+        active = setdiff(active, worst_global)
     end
-    
-    # Seleccionar top k features con mayor F-statistic
-    k_actual = min(model.k, n_features)
-    idxs = sortperm(fstats, rev=true)[1:k_actual]
-    
+
+    # Índices finales seleccionados
+    idxs = sort(active)
+
     # Guardar los nombres de las columnas originales
     feature_names = collect(Tables.columnnames(X))
-    selected_names = [feature_names[i] for i in idxs]
-    
-    # IMPORTANTE: fitresult debe contener la info necesaria para transform
-    fitresult = (idxs=idxs, selected_names=selected_names)
+    selected_names = feature_names[idxs]
+
+    # fitresult debe contener la info necesaria para transform
+    fitresult = (idxs = idxs, selected_names = selected_names)
     cache = nothing
-    report = (fstats=fstats, idxs=idxs, selected_features=selected_names)
-    
+    report = (idxs = idxs, selected_features = selected_names)
+
     return fitresult, cache, report
 end
 
-# Definir la función transform
+# -----------------------
+# TRANSFORM: aplicar RFE
+# -----------------------
 function transform(model::RFE, fitresult, X)
     # Convertir X a matriz
     Xmat = MLJBase.matrix(X)
-    
-    # Seleccionar columnas usando fitresult (no cache)
+
+    # Seleccionar columnas usando los índices aprendidos
     X_selected = Xmat[:, fitresult.idxs]
-    
+
     # Convertir de vuelta a tabla con nombres apropiados
     return MLJBase.table(X_selected, names=fitresult.selected_names)
 end     
 
-# Definir los tipos de entrada y salida
+# -----------------------
+# Tipos de entrada y salida (scitypes)
+# -----------------------
 input_scitype(::Type{<:RFE}) = Table(Continuous)
 target_scitype(::Type{<:RFE}) = AbstractVector{<:Finite}
 output_scitype(::Type{<:RFE}) = Table(Continuous)
-
-
 
 
 # ===================================================
