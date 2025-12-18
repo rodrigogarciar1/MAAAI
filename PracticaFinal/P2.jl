@@ -210,265 +210,124 @@ voting_clf = VotingClassifier(
 )
 ```
 """
-mutable struct VotingClassifier <: Probabilistic   # Models must be probabilistic, inherited from MLJBase
-    models::Vector{Probabilistic}
-    voting::Symbol  # :hard or :soft
+
+using Random
+
+import CategoricalArrays: pool
+
+mutable struct VotingClassifier <: Probabilistic
+    models::Vector{<:Probabilistic}
+    voting::Symbol
     weights::Union{Nothing, Vector{Float64}}
 end
 
-
-"""
-    VotingClassifier(; models=Probabilistic[], voting=:hard, weights=nothing)
-Constructor del `VotingClassifier`.
-
-# Argumentos
-- `models::Vector{Probabilistic}=Probabilistic[]`: Modelos base que se combinarán.  
-- `voting::Symbol=:hard`: Estrategia de votación (`:hard` o `:soft`).  
-- `weights::Union{Nothing, Vector{<:Real}}=nothing`: Pesos asignados a cada modelo. Se normalizan automáticamente para que su suma sea 1.0.
-
-# Excepciones
-- `AssertionError`: Si el parámetro `voting` no es `:hard` ni `:soft`.  
-- `AssertionError`: Si la longitud del vector de pesos no coincide con el número de modelos.  
-- `AssertionError`: Si todos los pesos son cero o negativos.
-"""
-
 function VotingClassifier(; models=Probabilistic[], voting=:hard, weights=nothing)
-    @assert voting in [:hard, :soft] "The only possible labels are :hard or :soft"
+    @assert voting in [:hard, :soft] "Voting debe ser :hard o :soft"
     
-    normalized_weights = nothing
     if weights !== nothing
-        @assert length(weights) == length(models) "El número de pesos tiene que ser igual al de modelos"
-        @assert all(w >= 0 for w in weights) "Todos los pesos deben de ser no negativos"
-        
-        # Suma normalizada de los pesos 1.0
-        normalized_weights = Float64.(weights) ./ sum(weights)
+        @assert length(weights) == length(models) "Pesos y modelos deben tener la misma longitud"
+        @assert all(w >= 0 for w in weights) "Los pesos deben ser no negativos"
+        weights = weights ./ sum(weights) # Normalización
     end
     
-    return VotingClassifier(models, voting, normalized_weights)
+    return VotingClassifier(models, voting, weights)
 end
 
-"""
-    MLJModelInterface.fit(model::VotingClassifier, verbosity::Int, X, y)
-
-Entrena el `VotingClassifier` ajustando cada modelo base con los datos proporcionados.
-
-# Argumentos
-- `model::VotingClassifier`: Instancia del clasificador de votación.  
-- `verbosity::Int`: Nivel de verbosidad para el registro del proceso de entrenamiento.  
-- `X`: Características de entrenamiento (en formato de tabla).  
-- `y`: Variable objetivo de entrenamiento (vector categórico).
-
-# Retorna
-- `fitresults`: Vector de máquinas entrenadas (una por cada modelo base).  
-- `cache`: `nothing` (no se implementa almacenamiento en caché).  
-- `report`: Tupla con nombre que contiene información del entrenamiento (número de modelos, estrategia de votación y pesos normalizados).
-"""
 
 function MLJModelInterface.fit(model::VotingClassifier, verbosity::Int, X, y)
-    # Entrenar cada modelos base
-    Random.seed(104)
-    indexes = crossvalidation(X, length(model.models))
-    machs = [begin
-        mm = machine(deepcopy(model.models[m]), X[findall(x-> x==m, indexes), :], y[findall(x-> x==m, indexes), :])
-        fit!(mm, verbosity=0)
-        mm
-    end for m in eachIndex(model.models)]
+    n_models = length(model.models)
+    n_rows = nrows(X)
+    
+
+    Random.seed!(104)
+
+    indexes = crossvalidation(n_rows, n_models)
+    
+    machs = []
+    for m in 1:n_models
+        idx = findall(x -> x == m, indexes)
+        X_sub = selectrows(X, idx)
+        y_sub = y[idx]
+        
+        mach = machine(model.models[m], X_sub, y_sub)
+        fit!(mach, verbosity=verbosity)
+        push!(machs, mach)
+    end
 
     fitresults = (
         machines = machs,
-        class_levels = collect(levels(y)),   #Mantener las clases para futuras ejecuciones
-        class_pool = CategoricalArrays.pool(y)
+        class_levels = levels(y),
+        class_pool = pool(y)
     )
     
-    # Guardar la información necesaria
     cache = nothing
-    report = (n_models=length(model.models), voting=model.voting, weights=model.weights)
+    report = (n_models=n_models, voting=model.voting, weights=model.weights)
     
     return fitresults, cache, report
 end
-
-
-"""
-    MLJModelInterface.predict_mode(model::VotingClassifier, fitresult, Xnew)
-
-Predice las etiquetas de clase utilizando **votación dura** (*hard voting*), es decir, votación mayoritaria con pesos opcionales.
-
-# Argumentos
-- `model::VotingClassifier`: Instancia del clasificador de votación.  
-- `fitresult`: Vector de máquinas entrenadas obtenido en la fase de ajuste.  
-- `Xnew`: Nuevos datos sobre los que se realizará la predicción.
-
-# Retorna
-- Vector categórico con las etiquetas de clase predichas, calculadas mediante votación mayoritaria (ponderada o no).
-
-# Detalles
-Cada modelo base emite un voto por una clase.  
-Si se han definido pesos, cada voto se multiplica por el peso correspondiente.  
-La clase con el mayor número de votos (ponderados) es seleccionada como predicción final.
-"""
+-
 
 function MLJModelInterface.predict_mode(model::VotingClassifier, fitresult, Xnew)
     machines = fitresult.machines
     class_levels = fitresult.class_levels
-    
-    # Obtener las prediciones de todos los modelos
-    predictions = [categorical(predict_mode(mach, Xnew), levels=class_levels) for mach in machines]
-    
-    # Recoger datos básicos de la simulación
-    n_samples = length(predictions[1])
+    n_samples = nrows(Xnew)
     n_models = length(machines)
     
-    # Establecer todos los pesos iguales, si no se han especificado
     weights = model.weights === nothing ? fill(1.0/n_models, n_models) : model.weights
     
-    # Output Vector with the same type as pthe predictions
-    ensemble_pred = similar(predictions[1])
+    all_preds = [predict_mode(mach, Xnew) for mach in machines]
     
+    ensemble_pred = CategoricalArray{eltype(class_levels)}(undef, n_samples)
+    levels!(ensemble_pred, class_levels)
+
     for i in 1:n_samples
-        # Contar el número de votos por clase
-        vote_counts = Dict{eltype(predictions[1][1]), Float64}()
-        
-        for (j, prediction) in enumerate(predictions)
-            vote_counts[prediction[i]] = get(vote_counts, prediction[i], 0.0) + weights[j]
+        vote_counts = Dict{Any, Float64}()
+        for m in 1:n_models
+            label = all_preds[m][i]
+            vote_counts[label] = get(vote_counts, label, 0.0) + weights[m]
         end
         
-        # Cambio necesario para problemas binarios (sin usar argmax sobre Dict)
-        best_label = nothing
-        best_score = -Inf
-        for (lbl, sc) in vote_counts
-            if sc > best_score
-                best_score = sc
+
+        best_label = first(keys(vote_counts))
+        max_v = -1.0
+        for (lbl, v) in vote_counts
+            if v > max_v
+                max_v = v
                 best_label = lbl
             end
         end
-
         ensemble_pred[i] = best_label
     end
 
     return ensemble_pred
 end
 
-"""
-    MLJModelInterface.predict(model::VotingClassifier, fitresult, Xnew)
-
-Predice las probabilidades de clase utilizando la estrategia de votación especificada.
-
-# Argumentos
-- `model::VotingClassifier`: Instancia del clasificador de votación.  
-- `fitresult`: Vector de máquinas entrenadas obtenido durante el ajuste.  
-- `Xnew`: Nuevos datos sobre los que se realizarán las predicciones.
-
-# Retorna
-- Vector de distribuciones `UnivariateFinite` que representan las probabilidades de pertenencia a cada clase.
-
-# Detalles
-- Para la votación `:hard`: se devuelven predicciones deterministas encapsuladas en `UnivariateFinite` (con pesos opcionales).  
-- Para la votación `:soft`: se calculan las probabilidades promediando las distribuciones generadas por todos los modelos base, aplicando los pesos correspondientes.
-"""
 
 function MLJModelInterface.predict(model::VotingClassifier, fitresult, Xnew)
-    machines     = fitresult.machines
-    class_levels = fitresult.class_levels
-    class_pool   = fitresult.class_pool
-
-    result = if model.voting == :hard
-       # Hard Voting
-        yhat = MLJModelInterface.predict_mode(model, fitresult, Xnew)
-        yhat = categorical(yhat; levels=class_levels)  # asegura mismos niveles
-
-        # Devuelve las probabilidades como one-hot encoded 
-        [MLJBase.UnivariateFinite(
-                    class_levels,
-                    [lvl == yhat[i] ? 1.0 : 0.0 for lvl in class_levels];
-                    pool=class_pool
-                ) for i in 1:length(yhat)]
-    else
-        # Soft voting
-        all_predictions = [predict(mach, Xnew) for mach in machines]
-
-        n_samples = length(all_predictions[1])
-        n_models  = length(machines)
-        n_classes = length(class_levels)
-        weights   = model.weights === nothing ? fill(1.0/n_models, n_models) : model.weights
-
-        avg_probs = zeros(n_samples, n_classes)
-        for (w, prediction) in zip(weights, all_predictions)
-            for i in 1:n_samples
-                p_i = prediction[i]
-                if p_i isa MLJBase.UnivariateFinite
-                    for (j, level) in enumerate(class_levels)
-                        avg_probs[i, j] += w * pdf(p_i, level)
-                    end
-                else
-                    # determinista -> one-hot
-                    for (j, level) in enumerate(class_levels)
-                        avg_probs[i, j] += w * (p_i == level ? 1.0 : 0.0)
-                    end
-                end
-            end
-        end
-
-        # Normalizar cada probabilidad para evitar problemas con el redondeo con los números reales
-        for i in 1:n_samples
-            s = sum(@view avg_probs[i, :])
-            if s > 0
-                @. avg_probs[i, :] = avg_probs[i, :] / s
-            end
-        end
-
-        # Usa la misma codificación entre llamadas para prevenir confusiones
-        [MLJBase.UnivariateFinite(class_levels, @view avg_probs[i, :]; pool=class_pool)
-         for i in 1:n_samples]
+    if model.voting == :hard
+        yhat = predict_mode(model, fitresult, Xnew)
+        return MLJBase.UnivariateFinite(fitresult.class_levels, yhat)
     end
 
-    return result
-end
-"""
-Registro de metadatos del modelo para `VotingClassifier`.
 
-Especifica los tipos de entrada/salida y las capacidades para su integración con MLJ.
-"""
+    machines = fitresult.machines
+    n_models = length(machines)
+    weights = model.weights === nothing ? fill(1.0/n_models, n_models) : model.weights
+
+    all_probs = [predict(mach, Xnew) for mach in machines]
+
+    combined_probs = weights[1] * all_probs[1]
+    for m in 2:n_models
+        combined_probs += weights[m] * all_probs[m]
+    end
+    
+    return combined_probs
+end
+
+
 MLJModelInterface.metadata_model(VotingClassifier,
     input_scitype=Table(Continuous),
     target_scitype=AbstractVector{<:Finite},
     supports_weights=false,
     load_path="VotingClassifier"
 )
-
-# ===================================================
-# VISUALIZACIÓN
-# ===================================================
-using ManifoldLearning   # Isomap, LLE
-using TSne               # t-SNE
-
-# --------------- t-SNE ---------------
-function applyTSNE(testData::AbstractMatrix{<:Real}; 
-                   dims::Int=2, perplexity::Float64=30.0)
-    tsne_test = tsne(testData, dims, 50, 300, perplexity)
-    return tsne_test
-end
-
-# --------------- Isomap ---------------
-function applyIsomap(testData::AbstractMatrix{<:Real}; 
-                     n_components::Int=2, n_neighbors::Int=10)
-    k_test = min(n_neighbors * 2, size(testData, 1) - 1)
-
-    isomap_test = ManifoldLearning.fit(ManifoldLearning.Isomap, testData', maxoutdim=n_components, k=k_test)
-    
-    test_proj = collect(isomap_test.model.α)
-    
-    return test_proj, isomap_test.component
-end
-
-# ----------------- LLE -----------------
-function applyLLE(testData::AbstractMatrix{<:Real}; 
-                  n_components::Int=2, n_neighbors::Int=10)
-    # Ajustar modelo LLE con mayor k para evitar componentes desconectados
-    k_test = min(n_neighbors * 2, size(testData, 1) - 1)
-    
-    lle_test = ManifoldLearning.fit(ManifoldLearning.LLE, testData', maxoutdim=n_components, k=k_test)
-    
-    test_proj = collect(transpose(lle_test.proj))
-    
-    return test_proj, lle_test.component
-end
