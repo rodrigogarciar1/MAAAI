@@ -266,11 +266,13 @@ Entrena el `VotingClassifier` ajustando cada modelo base con los datos proporcio
 
 function MLJModelInterface.fit(model::VotingClassifier, verbosity::Int, X, y)
     # Entrenar cada modelos base
+    Random.seed(104)
+    indexes = crossvalidation(X, length(model.models))
     machs = [begin
-        mm = machine(deepcopy(m), X, y)
+        mm = machine(deepcopy(model.models[m]), X[findall(x-> x==m, indexes), :], y[findall(x-> x==m, indexes), :])
         fit!(mm, verbosity=0)
         mm
-    end for m in model.models]
+    end for m in eachIndex(model.models)]
 
     fitresults = (
         machines = machs,
