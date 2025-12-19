@@ -1,3 +1,7 @@
+using Pkg
+Pkg.activate("../environment")
+Pkg.instantiate()
+
 using CSV
 using DataFrames
 using MLJBase
