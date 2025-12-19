@@ -1,5 +1,5 @@
 [dependencies]
-openssl = ">=3, <3.6, >=3, <3.6"
+openssl = ">=3, <3.6"
 catboost = ">=1.1"
 
     [dependencies.scikit-learn]
@@ -9,7 +9,7 @@ catboost = ">=1.1"
     [dependencies.python]
     channel = "conda-forge"
     build = "*cp*"
-    version = ">=3.10,!=3.14.0,!=3.14.1,<4, >=3.10,<3.14"
+    version = ">=3.10,!=3.14.0,!=3.14.1,<4"
 
 [project]
 name = ".CondaPkg"
