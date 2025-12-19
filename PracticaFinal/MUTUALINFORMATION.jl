@@ -48,7 +48,7 @@ function transform(model::MutualInformation, fitresult, X)
     # Convertir X a matriz
     Xmat = MLJBase.matrix(X)
     
-    # Seleccionar columnas usando fitresult (no cache)
+    # Seleccionar columnas usando fitresult
     X_selected = Xmat[:, fitresult.idxs]
     
     # Convertir de vuelta a tabla con nombres apropiados

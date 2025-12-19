@@ -52,7 +52,6 @@ function fit(model::KendallFilter, verbosity::Int, X, y)
     feature_names = collect(Tables.columnnames(X))
     selected_names = [feature_names[i] for i in idxs]
     
-    # IMPORTANTE: fitresult debe contener la info necesaria para transform
     fitresult = (idxs=idxs, selected_names=selected_names)
     cache = nothing
     report = (correlations=correlations, idxs=idxs, selected_features=selected_names)
@@ -68,11 +67,10 @@ function transform(model::KendallFilter, fitresult, X)
     # Seleccionar columnas usando fitresult (no cache)
     X_selected = Xmat[:, fitresult.idxs]
     
-    # Convertir de vuelta a tabla con nombres apropiados
+    # Convertir de vuelta 
     return MLJBase.table(X_selected, names=fitresult.selected_names)
 end
 
-# Definir los tipos de entrada y salida
 input_scitype(::Type{<:KendallFilter}) = Table(Continuous)
 target_scitype(::Type{<:KendallFilter}) = AbstractVector{<:Finite}
 output_scitype(::Type{<:KendallFilter}) = Table(Continuous)

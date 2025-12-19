@@ -44,18 +44,16 @@ function fit(model::RFE, verbosity::Int, X, y)
         # Entrenamos el modelo solo con las columnas activas
         θ = MLJLinearModels.fit(logreg, Xmat[:, active], y_vec)
 
-        # En muchos modelos lineales de MLJLinearModels el primer coeficiente
-        # suele ser el intercepto; lo excluimos:
+        # primer coeficiente lo excluimos
         coefs = θ[2:end]
 
         n_current = length(active)
-        # Número de variables a eliminar: 50 % de las actuales, pero:
-        #  - al menos 1
-        #  - sin bajar de k variables finales
+        # Número de variables 50 % de las actuales
+
         n_to_remove = max(1, floor(Int, n_current/2))
         n_to_remove = min(n_to_remove, n_current - model.k)
 
-        # Ordenamos por |coef| de menor a mayor (peores primero)
+        # Ordenamos por |coef| de menor a mayor 
         order_local = sortperm(abs.(coefs); rev=false)
         worst_local = order_local[1:n_to_remove]
 
