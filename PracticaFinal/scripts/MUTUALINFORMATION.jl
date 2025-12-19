@@ -5,7 +5,7 @@ Pkg.instantiate()
 using InformationMeasures
 
 # ===============================
-# ANOVA SelectKBest Filter
+# MutualInformation SelectKBest Filter
 # ===============================
 # Definir la estructura del modelo
 mutable struct MutualInformation <: MLJModelInterface.Supervised
